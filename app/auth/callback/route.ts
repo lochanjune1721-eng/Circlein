@@ -26,24 +26,20 @@ export async function GET(request: Request) {
       ? requested
       : 'auto'
 
-  if (oauthError) {
-    return NextResponse.redirect(new URL(`/apply?auth_error=${encodeURIComponent(oauthError)}`, url.origin))
-  }
-  if (!code) {
-    return NextResponse.redirect(new URL('/apply?auth_error=No%20code%20returned', url.origin))
-  }
+  // Anything that went wrong belongs on /signin — that is the page about
+  // signing in, and it renders auth_error. Sending someone to the application
+  // form instead just loses the thread.
+  const failed = (reason: string) =>
+    NextResponse.redirect(new URL(`/signin?auth_error=${encodeURIComponent(reason)}`, url.origin))
+
+  if (oauthError) return failed(oauthError)
+  if (!code) return failed('LinkedIn returned no authorisation code.')
 
   const supabase = await sessionClient()
-  if (!supabase) {
-    return NextResponse.redirect(new URL('/apply?auth_error=Sign-in%20is%20not%20configured', url.origin))
-  }
+  if (!supabase) return failed('This deployment has no SUPABASE_URL / SUPABASE_ANON_KEY.')
 
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-  if (error) {
-    return NextResponse.redirect(
-      new URL(`/apply?auth_error=${encodeURIComponent(error.message)}`, url.origin),
-    )
-  }
+  if (error) return failed(error.message)
 
   if (next !== 'auto') return NextResponse.redirect(new URL(next, url.origin))
 
