@@ -105,6 +105,24 @@ export function Combobox({
     node?.scrollIntoView({ block: 'nearest' })
   }, [active, open])
 
+  // On a phone, tapping a field near the bottom of the page opens the list
+  // below the fold — and then the software keyboard covers what is left of it.
+  // Pull the field up so its options have somewhere to go.
+  useEffect(() => {
+    if (!open) return
+    const input = wrapperRef.current
+    if (!input) return
+    const id = window.setTimeout(() => {
+      const rect = input.getBoundingClientRect()
+      // Roughly what is left once a keyboard takes the bottom half.
+      const usable = window.innerHeight * 0.45
+      if (rect.bottom > usable) {
+        window.scrollBy({ top: rect.top - 88, behavior: 'smooth' })
+      }
+    }, 50)
+    return () => window.clearTimeout(id)
+  }, [open])
+
   function choose(option: Option) {
     onChange(option.value)
     setQuery('')

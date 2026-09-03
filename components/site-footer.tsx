@@ -40,12 +40,12 @@ export function SiteFooter() {
         {COLUMNS.map((column) => (
           <div key={column.title}>
             <h2 className="eyebrow">{column.title}</h2>
-            <ul className="mt-4 space-y-2.5">
+            <ul className="mt-2 space-y-0.5 sm:mt-4 sm:space-y-2.5">
               {column.links.map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-[14px] text-bone-dim transition-colors hover:text-bone"
+                    className="inline-block py-2 text-[14px] text-bone-dim transition-colors hover:text-bone sm:py-0"
                   >
                     {link.label}
                   </Link>

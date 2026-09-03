@@ -27,7 +27,7 @@ export default async function NichesPage() {
 
   return (
     <div className="shell pb-24 pt-16">
-      <nav aria-label="Breadcrumb" className="text-[13px] text-bone-faint">
+      <nav aria-label="Breadcrumb" className="text-[13px] text-bone-faint [&_a]:inline-block [&_a]:py-1.5">
         <Link href="/directory" className="hover:text-bone">
           Directory
         </Link>

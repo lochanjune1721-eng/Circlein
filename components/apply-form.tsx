@@ -153,7 +153,7 @@ export function ApplyForm({ cities, roles, intakeOpen }: Props) {
           id="portfolioUrl"
           value={portfolioUrl}
           onChange={setPortfolioUrl}
-          placeholder="yoursite.com, github.com/you, dribbble.com/you"
+          placeholder="yoursite.com or github.com/you"
           optional
           error={fieldErrors.portfolioUrl}
           autoComplete="url"
@@ -247,6 +247,13 @@ function Field({
         id={id}
         name={id}
         type={type}
+        // A phone keyboard that autocapitalises and autocorrects turns
+        // "linkedin.com/in/me" into "Linkedin.com/in/me" before you finish
+        // typing it, so URL and email fields opt out of both.
+        inputMode={type === 'tel' ? 'tel' : autoComplete === 'url' ? 'url' : undefined}
+        autoCapitalize={autoComplete === 'url' ? 'none' : undefined}
+        autoCorrect={autoComplete === 'url' ? 'off' : undefined}
+        spellCheck={autoComplete === 'url' ? false : undefined}
         autoComplete={autoComplete}
         className={`field ${error ? 'border-flag/70' : ''}`}
         placeholder={placeholder}
