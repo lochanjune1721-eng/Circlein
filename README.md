@@ -72,6 +72,50 @@ That is the whole setup. The app requests `openid profile email` and uses Supaba
 `linkedin_oidc` provider — note the suffix: plain `linkedin` was LinkedIn's older
 OAuth product and no longer works.
 
+### Deploying to Cloudflare
+
+The app runs on Cloudflare Workers through the OpenNext adapter. Verified working:
+every route, the middleware, and the `node:crypto` calls the status tokens, IP
+hashing and admin auth depend on.
+
+```bash
+npm run preview   # build for Workers and run it locally in workerd
+npm run deploy    # build and ship it
+```
+
+**Environment variables split in two, and getting this wrong is the usual first
+failure:**
+
+- `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are **inlined into
+  the client bundle at build time.** They must be set when the build runs — in
+  Workers Builds that means *build* environment variables, not runtime ones. Set them
+  only at runtime and LinkedIn sign-in silently will not work in the browser.
+- Everything else is read at runtime from `process.env`. Set them as secrets:
+
+  ```bash
+  wrangler secret put SUPABASE_SERVICE_ROLE_KEY
+  wrangler secret put ANTHROPIC_API_KEY
+  wrangler secret put CIRCLEIN_ADMIN_TOKEN
+  ```
+
+  This works because `wrangler.jsonc` pins `compatibility_date` to 2026-01-01 —
+  before 2025-04-01, Cloudflare variables never reach `process.env` at all.
+
+Local Worker preview reads secrets from `.dev.vars`, not `.env.local`. Copy
+`.dev.vars.example` and fill it in.
+
+**Connecting the repo to Workers Builds:** build command
+`npx opennextjs-cloudflare build`, deploy command `npx opennextjs-cloudflare deploy`.
+
+**Add your domain last.** After the first deploy, put the Worker's URL into
+LinkedIn's Authorized redirect URLs and Supabase's Site URL / Redirect URLs, or the
+OAuth round trip will bounce.
+
+One known cost of the minimal setup: `open-next.config.ts` configures no incremental
+cache, so the `revalidate = 300` directory pages re-render per isolate instead of
+being served from a shared cache. Fine at low traffic; wire up an R2 bucket when it
+is not. The file says exactly how.
+
 ### Checks
 
 ```bash
@@ -245,6 +289,8 @@ app/
   admin/                         review queue
   api/                           apply · status · search · events/rsvp · admin/review
 middleware.ts                    refreshes the Supabase session on every request
+wrangler.jsonc                   Cloudflare Worker config
+open-next.config.ts              the Next-to-Workers adapter
 lib/
   supabase/auth.ts               session client and the LinkedIn identity
   events.ts                      listing, capacity, RSVP and waitlist

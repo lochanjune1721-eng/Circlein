@@ -1,0 +1,6 @@
+# Local Worker preview (`npm run preview`) reads secrets from .dev.vars, not
+# .env.local — copy this to .dev.vars and fill it in. Never commit .dev.vars.
+SUPABASE_SERVICE_ROLE_KEY=
+ANTHROPIC_API_KEY=
+CIRCLEIN_ADMIN_TOKEN=
+LINKEDIN_PROVIDER_KEY=

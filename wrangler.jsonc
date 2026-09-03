@@ -1,0 +1,41 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "circlein",
+  "main": ".open-next/worker.js",
+
+  // Must be 2025-04-01 or later, otherwise variables set in the Cloudflare
+  // dashboard do not appear in process.env — which is where every server-side
+  // secret in this app is read from.
+  "compatibility_date": "2026-01-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Static assets built by Next. ASSETS is the binding name the adapter
+  // expects; renaming it breaks asset serving.
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  "observability": {
+    "enabled": true
+  },
+
+  // Secrets are NOT set here — this file is committed. Set them with
+  // `wrangler secret put NAME`, or in the dashboard under Settings > Variables:
+  //
+  //   SUPABASE_SERVICE_ROLE_KEY   bypasses row level security
+  //   ANTHROPIC_API_KEY           the verification judge
+  //   CIRCLEIN_ADMIN_TOKEN        the /admin review queue
+  //   LINKEDIN_PROVIDER_KEY       the tenure lookup, if you have one
+  //
+  // NEXT_PUBLIC_* variables are inlined into the client bundle at build time,
+  // so they must be present when `opennextjs-cloudflare build` runs, not just
+  // at runtime. In Workers Builds, set them as build environment variables.
+  "vars": {
+    "CIRCLEIN_MIN_TENURE_MONTHS": "3",
+    "CIRCLEIN_MIN_ACCOUNT_AGE_MONTHS": "12",
+    "CIRCLEIN_RATE_LIMIT_PER_HOUR": "5",
+    "CIRCLEIN_WHATSAPP_CAPACITY": "200",
+    "LINKEDIN_PROVIDER": "mock"
+  }
+}
