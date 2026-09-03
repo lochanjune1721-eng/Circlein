@@ -52,9 +52,19 @@ export default async function SignInPage({
         {available ? (
           <LinkedInButton next={target} label="Sign in with LinkedIn" />
         ) : (
-          <p className="rounded-lg border border-ink-line bg-ink-raised px-4 py-3 text-[14px] text-bone-dim">
-            LinkedIn sign-in is not configured on this deployment yet.
-          </p>
+          <div className="rounded-lg border border-flag/40 bg-flag/[0.07] px-4 py-4 text-[14px] text-bone-dim">
+            <p className="text-bone">This build has no Supabase keys, so sign-in cannot start.</p>
+            <p className="mt-2 leading-relaxed">
+              It needs <span className="font-mono text-[13px]">NEXT_PUBLIC_SUPABASE_URL</span> and{' '}
+              <span className="font-mono text-[13px]">NEXT_PUBLIC_SUPABASE_ANON_KEY</span>. Both are
+              baked in when the app is built, so setting them afterwards does nothing until you
+              deploy again.
+            </p>
+            <p className="mt-2 leading-relaxed text-bone-faint">
+              Nothing to do with your LinkedIn provider in Supabase — that is checked later, once
+              sign-in can actually start. See <span className="font-mono text-[13px]">/api/health</span>.
+            </p>
+          </div>
         )}
       </div>
 

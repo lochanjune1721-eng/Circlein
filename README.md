@@ -150,6 +150,23 @@ cache, so the `revalidate = 300` directory pages re-render per isolate instead o
 being served from a shared cache. Fine at low traffic; wire up an R2 bucket when it
 is not. The file says exactly how.
 
+### Is it configured?
+
+`GET /api/health` reports what a deployment actually has, as booleans — never values:
+
+```json
+{ "signInAvailable": false,
+  "supabaseServiceRole": false,
+  "tenureSource": "mock",
+  "hint": "Sign-in is unavailable because this build has no NEXT_PUBLIC_..." }
+```
+
+`signInAvailable: false` means this build has no `NEXT_PUBLIC_SUPABASE_URL` /
+`NEXT_PUBLIC_SUPABASE_ANON_KEY`. That is about the app's own environment and says
+nothing about the LinkedIn provider in Supabase — sign-in never gets far enough to
+ask. Because those two are inlined at build time, setting them on a host after a
+deploy changes nothing until the app is built again.
+
 ### Checks
 
 ```bash

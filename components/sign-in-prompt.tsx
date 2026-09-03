@@ -18,7 +18,7 @@ export function SignInPrompt({
   title: string
   body: string
   next?: string
-  /** False when LinkedIn sign-in is not configured on this deployment. */
+  /** False when this build has no Supabase public keys, so sign-in cannot start. */
   available: boolean
   className?: string
 }) {

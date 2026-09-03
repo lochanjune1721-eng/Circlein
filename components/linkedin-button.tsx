@@ -28,7 +28,9 @@ export function LinkedInButton({
   async function signIn() {
     const supabase = browserClient()
     if (!supabase) {
-      setError('Sign-in is not configured on this deployment.')
+      setError(
+        'This build has no Supabase keys, so sign-in cannot start. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, then deploy again.',
+      )
       return
     }
     setBusy(true)
