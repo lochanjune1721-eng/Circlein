@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import { StatusView } from '@/components/status-view'
+import { statusForUser } from '@/lib/applications'
+import { currentIdentity } from '@/lib/supabase/auth'
 
 export const metadata: Metadata = {
   title: 'Check your status',
@@ -14,6 +16,11 @@ export default async function StatusPage({
   searchParams: Promise<{ token?: string }>
 }) {
   const { token } = await searchParams
+  const identity = await currentIdentity()
+
+  // Signed in? Then there is nothing to paste — the session already says who
+  // this is, and RLS makes sure it can only be their own row.
+  const own = identity ? await statusForUser(identity.authUserId) : null
 
   return (
     <div className="shell max-w-3xl pb-24 pt-16">
@@ -22,12 +29,13 @@ export default async function StatusPage({
         Where things stand.
       </h1>
       <p className="mt-5 max-w-prose text-[16px] leading-relaxed text-bone-dim">
-        Paste the link you were given after applying. It is the only credential — we do not ask you
-        to make an account for this.
+        {identity
+          ? `Signed in as ${identity.fullName}.`
+          : 'Paste the link you were given after applying, or sign in with LinkedIn and we will find it.'}
       </p>
 
       <div className="mt-12">
-        <StatusView initialToken={token ?? ''} />
+        <StatusView initialToken={token ?? ''} initialApplication={own} signedIn={Boolean(identity)} />
       </div>
     </div>
   )

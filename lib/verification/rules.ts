@@ -43,6 +43,39 @@ export function applyRules(claim: ApplicationClaim, profile: LinkedInProfile): R
   const unknowns: string[] = []
   let hardFailure = false
 
+  // ── Identity ───────────────────────────────────────────────────────────
+  // When someone has signed in with LinkedIn, who they are stops being a
+  // claim: LinkedIn asserts the name and the email, and the member id is
+  // stable. That is far stronger than comparing a typed name against a
+  // fetched profile, so it replaces the name check rather than adding to it.
+  const identity = claim.identity ?? null
+  if (identity) {
+    reasons.push(
+      reason(
+        'identity',
+        'LinkedIn identity',
+        true,
+        `Signed in as ${identity.fullName}${identity.email ? ` (${identity.email})` : ''} — confirmed by LinkedIn.`,
+      ),
+    )
+    if (!identity.emailVerified) {
+      unknowns.push('email_verified')
+      reasons.push(
+        reason(
+          'email_verified',
+          'Email confirmed',
+          false,
+          'LinkedIn did not report this email as confirmed.',
+        ),
+      )
+    }
+  } else {
+    unknowns.push('identity')
+    reasons.push(
+      reason('identity', 'LinkedIn identity', false, 'This application was made without signing in to LinkedIn.'),
+    )
+  }
+
   // ── Account age ────────────────────────────────────────────────────────
   let accountAgeMonths: number | null = null
   if (profile.accountCreatedAt) {
@@ -151,7 +184,12 @@ export function applyRules(claim: ApplicationClaim, profile: LinkedInProfile): R
   }
 
   // ── Is this the same person? ───────────────────────────────────────────
-  if (profile.fullName) {
+  // Only meaningful without sign-in. With a verified identity the question is
+  // already settled, and re-asking it against a vendor's spelling of someone's
+  // name just manufactures false mismatches.
+  if (identity) {
+    // Settled above.
+  } else if (profile.fullName) {
     const a = canonicalise(profile.fullName)
     const b = canonicalise(claim.fullName)
     // Compare on name parts, so "Priya S. Nair" and "Priya Nair" agree.

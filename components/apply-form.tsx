@@ -3,6 +3,13 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { Combobox, type Option } from './combobox'
+import { LinkedInButton } from './linkedin-button'
+
+export interface SignedInIdentity {
+  fullName: string
+  email: string | null
+  emailVerified: boolean
+}
 
 /**
  * The request flow.
@@ -19,6 +26,10 @@ interface Props {
   minAccountAgeMonths: number
   /** False when the deployment has no database yet; the form explains instead of failing. */
   intakeOpen: boolean
+  /** Present once the applicant has signed in with LinkedIn. */
+  identity: SignedInIdentity | null
+  /** False when LinkedIn sign-in is not configured, which unlocks manual entry. */
+  signInAvailable: boolean
 }
 
 type Status = 'pending' | 'verifying' | 'needs_review' | 'approved' | 'rejected' | 'withdrawn'
@@ -33,7 +44,15 @@ interface SubmitResponse {
 
 const STEPS = ['Where', 'What', 'Your work', 'You'] as const
 
-export function ApplyForm({ cities, niches, minTenureMonths, minAccountAgeMonths, intakeOpen }: Props) {
+export function ApplyForm({
+  cities,
+  niches,
+  minTenureMonths,
+  minAccountAgeMonths,
+  intakeOpen,
+  identity,
+  signInAvailable,
+}: Props) {
   const [step, setStep] = useState(0)
   const [citySlug, setCitySlug] = useState<string | null>(null)
   const [nicheSlug, setNicheSlug] = useState<string | null>(null)
@@ -47,6 +66,10 @@ export function ApplyForm({ cities, niches, minTenureMonths, minAccountAgeMonths
   const [note, setNote] = useState('')
   const [website, setWebsite] = useState('') // honeypot
 
+  // With a session, the server takes name and email from LinkedIn and ignores
+  // whatever these hold — they only matter on the manual fallback.
+  const identified = Boolean(identity)
+
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<SubmitResponse | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
@@ -59,7 +82,9 @@ export function ApplyForm({ cities, niches, minTenureMonths, minAccountAgeMonths
     Boolean(citySlug),
     Boolean(nicheSlug),
     rawTitle.trim().length >= 2,
-    fullName.trim().length >= 2 && email.includes('@') && linkedinUrl.length > 4 && whatsapp.length > 6,
+    identified
+      ? whatsapp.length > 6
+      : fullName.trim().length >= 2 && email.includes('@') && linkedinUrl.length > 4 && whatsapp.length > 6,
   ]
 
   async function submit() {
@@ -73,7 +98,7 @@ export function ApplyForm({ cities, niches, minTenureMonths, minAccountAgeMonths
         body: JSON.stringify({
           fullName,
           email,
-          linkedinUrl,
+          linkedinUrl: linkedinUrl || null,
           whatsapp,
           citySlug,
           nicheSlug,
@@ -249,38 +274,66 @@ export function ApplyForm({ cities, niches, minTenureMonths, minAccountAgeMonths
         {step === 3 ? (
           <StepShell
             n="04"
-            title="And you"
-            body={`Your LinkedIn is how we verify you. The account needs to be at least ${minAccountAgeMonths} months old. Your number is only used to add you to the group.`}
+            title={identified ? 'Where do we add you?' : 'And you'}
+            body={
+              identified
+                ? 'LinkedIn has already told us who you are. All that is left is the number to add you on.'
+                : `Your LinkedIn is how we verify you. The account needs to be at least ${minAccountAgeMonths} months old. Your number is only used to add you to the group.`
+            }
           >
             <div className="space-y-5">
-              <Field
-                label="Full name"
-                id="fullName"
-                value={fullName}
-                onChange={setFullName}
-                placeholder="As it appears on your profile"
-                error={fieldErrors.fullName}
-                autoComplete="name"
-              />
-              <Field
-                label="Email"
-                id="email"
-                type="email"
-                value={email}
-                onChange={setEmail}
-                placeholder="you@work.com"
-                error={fieldErrors.email}
-                autoComplete="email"
-              />
-              <Field
-                label="LinkedIn profile"
-                id="linkedinUrl"
-                value={linkedinUrl}
-                onChange={setLinkedinUrl}
-                placeholder="linkedin.com/in/your-name"
-                error={fieldErrors.linkedinUrl}
-                autoComplete="url"
-              />
+              {identified ? (
+                <div>
+                  <p className="label">Your LinkedIn profile URL <span className="text-bone-faint">Optional</span></p>
+                  <input
+                    id="linkedinUrl"
+                    className={`field ${fieldErrors.linkedinUrl ? 'border-flag/70' : ''}`}
+                    placeholder="linkedin.com/in/your-name"
+                    value={linkedinUrl}
+                    onChange={(e) => setLinkedinUrl(e.target.value)}
+                    autoComplete="url"
+                  />
+                  <p className="mt-2 text-[13px] text-bone-faint">
+                    Signing in proved who you are, but LinkedIn does not release your work history
+                    to us. Adding your profile link lets us check your dates automatically —
+                    without it, a person reads your application instead.
+                  </p>
+                  {fieldErrors.linkedinUrl ? (
+                    <p className="mt-2 text-[13px] text-flag">{fieldErrors.linkedinUrl}</p>
+                  ) : null}
+                </div>
+              ) : (
+                <>
+                  <Field
+                    label="Full name"
+                    id="fullName"
+                    value={fullName}
+                    onChange={setFullName}
+                    placeholder="As it appears on your profile"
+                    error={fieldErrors.fullName}
+                    autoComplete="name"
+                  />
+                  <Field
+                    label="Email"
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={setEmail}
+                    placeholder="you@work.com"
+                    error={fieldErrors.email}
+                    autoComplete="email"
+                  />
+                  <Field
+                    label="LinkedIn profile"
+                    id="linkedinUrl"
+                    value={linkedinUrl}
+                    onChange={setLinkedinUrl}
+                    placeholder="linkedin.com/in/your-name"
+                    error={fieldErrors.linkedinUrl}
+                    autoComplete="url"
+                  />
+                </>
+              )}
               <Field
                 label="WhatsApp number"
                 id="whatsapp"
@@ -319,6 +372,12 @@ export function ApplyForm({ cities, niches, minTenureMonths, minAccountAgeMonths
                 <dt className="text-bone-faint">Role</dt>
                 <dd className="mt-0.5 text-bone">{rawTitle || '—'}</dd>
               </div>
+              {identity ? (
+                <div>
+                  <dt className="text-bone-faint">Applying as</dt>
+                  <dd className="mt-0.5 text-bone">{identity.fullName}</dd>
+                </div>
+              ) : null}
             </dl>
           </StepShell>
         ) : null}

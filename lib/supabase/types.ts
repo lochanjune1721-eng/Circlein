@@ -22,7 +22,7 @@ export interface ApplicationRow {
   status: ApplicationStatus
   full_name: string
   email: string
-  linkedin_url: string
+  linkedin_url: string | null
   whatsapp_e164: string
   city: string
   niche: string
@@ -37,6 +37,14 @@ export interface ApplicationRow {
   decision_note: string | null
   ip_hash: string | null
   user_agent: string | null
+  /** Supabase auth user, present once the applicant signed in with LinkedIn. */
+  auth_user_id: string | null
+  /** Stable LinkedIn member id (the OIDC `sub`). */
+  linkedin_sub: string | null
+  linkedin_name: string | null
+  linkedin_email: string | null
+  linkedin_email_verified: boolean
+  linkedin_picture: string | null
 }
 
 export interface VerificationCheckRow {
@@ -71,7 +79,7 @@ export interface MemberRow {
   application_id: string
   full_name: string
   email: string
-  linkedin_url: string
+  linkedin_url: string | null
   whatsapp_e164: string
   city: string
   niche: string
@@ -82,6 +90,9 @@ export interface MemberRow {
   verified_at: string
   is_active: boolean
   created_at: string
+  auth_user_id: string | null
+  linkedin_sub: string | null
+  linkedin_picture: string | null
 }
 
 export interface CircleRow {

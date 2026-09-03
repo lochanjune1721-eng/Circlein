@@ -45,6 +45,7 @@ How to weigh things:
 - The job title on the profile is the primary evidence. A title that plainly describes the claimed role is strong support.
 - Titles vary by company and country. "SDE II", "Member of Technical Staff" and "Software Engineer" are the same job. Do not fail someone for house style.
 - A niche is a fair fit if the work described plausibly falls under it, not only if it is the single best label. Someone who builds recommendation systems fits both Machine Learning and Software Engineering.
+- Identity is not your question when the applicant has signed in with LinkedIn. Whether they hold the *role* still is.
 - Be sceptical of a headline that claims seniority or a function the position history does not support, of aspirational headlines ("aspiring", "learning", "looking for opportunities"), and of a profile whose only evidence is the claim itself.
 - Absence of evidence is not evidence of fraud. If the profile is simply thin, say you are not confident rather than asserting the person is lying.
 
@@ -78,7 +79,11 @@ function describeClaim(claim: ApplicationClaim): string {
   const city = CITY_BY_SLUG.get(claim.citySlug)
   const niche = NICHE_BY_SLUG.get(claim.nicheSlug)
   const role = claim.roleSlug ? ROLE_BY_SLUG.get(claim.roleSlug) : null
+  const identity = claim.identity
   return [
+    identity
+      ? `Identity: signed in with LinkedIn as ${identity.fullName}${identity.email ? ` (${identity.email}${identity.emailVerified ? ', confirmed' : ', unconfirmed'})` : ''}. LinkedIn asserts this; treat it as settled and do not second-guess who they are.`
+      : 'Identity: not signed in with LinkedIn — who this person is has not been independently established.',
     `Name: ${claim.fullName}`,
     `Job title as written by the applicant: ${claim.rawTitle}`,
     `Company: ${claim.company ?? 'not given'}`,

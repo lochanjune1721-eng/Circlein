@@ -40,9 +40,18 @@ const WHATSAPP_COPY: Record<string, string> = {
   failed: 'We could not add you automatically. Someone will reach out.',
 }
 
-export function StatusView({ initialToken }: { initialToken: string }) {
+export function StatusView({
+  initialToken,
+  initialApplication = null,
+  signedIn = false,
+}: {
+  initialToken: string
+  /** Resolved server-side from the session, so a signed-in member sees it immediately. */
+  initialApplication?: Application | null
+  signedIn?: boolean
+}) {
   const [token, setToken] = useState(initialToken)
-  const [application, setApplication] = useState<Application | null>(null)
+  const [application, setApplication] = useState<Application | null>(initialApplication)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -67,11 +76,16 @@ export function StatusView({ initialToken }: { initialToken: string }) {
   }, [])
 
   useEffect(() => {
-    if (initialToken) void load(initialToken)
-  }, [initialToken, load])
+    // Nothing to fetch when the session already produced the application.
+    if (initialToken && !initialApplication) void load(initialToken)
+  }, [initialToken, initialApplication, load])
+
+  // A signed-in member with an application never needs the token box.
+  const showLookup = !signedIn || !application
 
   return (
     <div>
+      {showLookup ? (
       <form
         onSubmit={(e) => {
           e.preventDefault()
@@ -98,6 +112,13 @@ export function StatusView({ initialToken }: { initialToken: string }) {
           {loading ? 'Looking…' : 'Check'}
         </button>
       </form>
+      ) : null}
+
+      {signedIn && !application ? (
+        <p className="mt-6 text-[14px] text-bone-dim">
+          No application found on this account yet.
+        </p>
+      ) : null}
 
       {error ? (
         <p role="alert" className="mt-6 rounded-lg border border-flag/40 bg-flag/10 px-4 py-3 text-[14px] text-flag">

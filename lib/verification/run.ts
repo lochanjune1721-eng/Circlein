@@ -22,7 +22,7 @@ import type { ApplicationClaim, VerificationOutcome } from './types'
  * uncertain path lands on `needs_review`.
  */
 export async function verifyApplication(claim: ApplicationClaim): Promise<VerificationOutcome> {
-  const provider = activeProvider()
+  const provider = activeProvider(claim)
   const fetched = await provider.fetch(claim)
 
   if (!fetched.ok || !fetched.profile) {

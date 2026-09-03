@@ -36,9 +36,15 @@ const whatsapp = z
   .refine((value) => /^\+\d{8,15}$/.test(value), 'Include the country code, e.g. +91 98765 43210.')
 
 export const applySchema = z.object({
-  fullName: z.string().trim().min(2, 'Add your name.').max(120),
-  email: z.string().trim().toLowerCase().pipe(z.email('That email does not look right.')).and(z.string().max(200)),
-  linkedinUrl,
+  /**
+   * Name and email are only read when nobody is signed in. With a LinkedIn
+   * session the server takes both from the identity and ignores whatever the
+   * form posted, so these cannot be used to apply as someone else.
+   */
+  fullName: z.string().trim().max(120).optional().default(''),
+  email: z.string().trim().toLowerCase().max(200).optional().default(''),
+  /** Optional: sign-in proves who you are, the URL is only for the tenure lookup. */
+  linkedinUrl: linkedinUrl.optional().nullable(),
   whatsapp,
   citySlug: z.string().refine((s) => CITY_BY_SLUG.has(s), 'Pick a city from the list.'),
   nicheSlug: z.string().refine((s) => NICHE_BY_SLUG.has(s), 'Pick a niche from the list.'),
@@ -57,6 +63,26 @@ export const applySchema = z.object({
 })
 
 export type ApplyInput = z.infer<typeof applySchema>
+
+/**
+ * The extra fields required when there is no LinkedIn session. Applied on top
+ * of `applySchema` by the route, so the signed-in path never has to satisfy
+ * them.
+ */
+export const anonymousApplySchema = z.object({
+  // The `error` argument covers a missing key too, so a field left out of the
+  // request reads the same as one left blank in the form. Without it Zod says
+  // "expected string, received undefined", which then renders under an input.
+  fullName: z.string({ error: 'Add your name.' }).trim().min(2, 'Add your name.').max(120),
+  email: z
+    .string({ error: 'Add your email.' })
+    .trim()
+    .toLowerCase()
+    .pipe(z.email('That email does not look right.')),
+  linkedinUrl: z
+    .string({ error: 'Add your LinkedIn profile, or sign in with LinkedIn instead.' })
+    .pipe(linkedinUrl),
+})
 
 /** Turn a Zod failure into field -> first message, for rendering next to inputs. */
 export function fieldErrors(error: z.ZodError): Record<string, string> {

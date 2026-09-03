@@ -49,6 +49,46 @@ async function main() {
   console.log(`  ${cityReason?.passed ? 'PASS' : 'FAIL'}  ${cityReason?.detail}`)
   if (!cityReason?.passed) failures.push('Noida should match the Delhi NCR market')
 
+  console.log('\nSigning in with LinkedIn settles identity:')
+  const signedIn: ApplicationClaim = {
+    ...claim,
+    fullName: 'P. Nair',
+    identity: {
+      sub: 'li-abc123',
+      fullName: 'Priya Nair',
+      email: 'priya@example.com',
+      emailVerified: true,
+      picture: null,
+    },
+  }
+  const withId = applyRules(signedIn, profile)
+  const idReason = withId.reasons.find((r) => r.rule === 'identity')
+  console.log(`  ${idReason?.passed ? 'PASS' : 'FAIL'}  ${idReason?.detail}`)
+  if (!idReason?.passed) failures.push('a signed-in identity should pass the identity rule')
+  if (withId.reasons.some((r) => r.rule === 'name_match')) {
+    failures.push('name matching should be skipped once identity is verified')
+  } else {
+    console.log('  PASS  name matching skipped — identity already proven')
+  }
+  if (withId.unknowns.includes('identity')) failures.push('a signed-in application should not be unknown-identity')
+
+  console.log('\nWithout signing in, identity is an open question:')
+  const anonymous = applyRules({ ...claim, identity: null }, profile)
+  const anonIdentity = anonymous.reasons.find((r) => r.rule === 'identity')
+  console.log(`  ${anonIdentity?.passed ? 'PASS' : 'open'}  ${anonIdentity?.detail}`)
+  if (anonIdentity?.passed) failures.push('an application with no sign-in should not pass the identity rule')
+  if (!anonymous.unknowns.includes('identity')) {
+    failures.push('an application with no sign-in should be flagged for review')
+  }
+
+  console.log('\nSelf-reported dates always reach a person:')
+  const declared = applyRules(signedIn, { ...profile, selfReported: true, provider: 'manual' })
+  if (!declared.unknowns.includes('independent_source')) {
+    failures.push('self-reported dates should never auto-approve')
+  } else {
+    console.log('  PASS  flagged as not independently sourced')
+  }
+
   if (failures.length) {
     console.error(`\n${failures.length} failure(s):`)
     for (const f of failures) console.error(`  - ${f}`)

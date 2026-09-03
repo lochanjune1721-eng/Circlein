@@ -17,7 +17,8 @@ export interface ProfilePosition {
  * never touches the rules.
  */
 export interface LinkedInProfile {
-  profileUrl: string
+  /** Null when the applicant signed in but never supplied a vanity URL. */
+  profileUrl: string | null
   fullName: string | null
   headline: string | null
   location: string | null
@@ -40,10 +41,33 @@ export interface ProfileFetchResult {
   error?: string
 }
 
+/**
+ * The identity LinkedIn itself asserts, once someone has signed in.
+ *
+ * Everything here is stated by LinkedIn rather than typed by the applicant,
+ * which is why it is kept separate from the claim below. Note what is absent:
+ * LinkedIn's OpenID Connect product returns no job history, no headline and no
+ * account creation date, so this proves *who* someone is and nothing about
+ * what they do.
+ */
+export interface VerifiedIdentity {
+  sub: string
+  fullName: string
+  email: string | null
+  emailVerified: boolean
+  picture: string | null
+}
+
 /** What the applicant says about themselves. */
 export interface ApplicationClaim {
   fullName: string
-  linkedinUrl: string
+  /**
+   * Optional now that identity comes from sign-in. Still useful: it is the
+   * lookup key for whichever source establishes tenure.
+   */
+  linkedinUrl: string | null
+  /** Present when they signed in with LinkedIn; absent in the manual fallback. */
+  identity?: VerifiedIdentity | null
   rawTitle: string
   company?: string | null
   citySlug: string

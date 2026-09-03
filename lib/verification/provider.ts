@@ -47,7 +47,9 @@ export const manualProvider: ProfileProvider = {
     }
     const profile: LinkedInProfile = {
       profileUrl: claim.linkedinUrl,
-      fullName: claim.fullName,
+      // Once someone has signed in, the name LinkedIn asserts beats the one
+      // they typed into a form.
+      fullName: claim.identity?.fullName ?? claim.fullName,
       headline: claim.rawTitle,
       location: null,
       accountCreatedAt: claim.declaredAccountCreatedAt ?? null,
@@ -61,6 +63,8 @@ export const manualProvider: ProfileProvider = {
         },
       ],
       provider: 'manual',
+      // The dates came from the applicant, so this always ends up in front of
+      // a person no matter how confident everything else is.
       selfReported: true,
     }
     return { ok: true, profile }
@@ -110,7 +114,7 @@ function toIsoDate(value: VendorPosition['starts_at']): string | null {
   return new Date(Date.UTC(year, month - 1, day)).toISOString().slice(0, 10)
 }
 
-export function mapVendorPayload(payload: VendorPayload, url: string): LinkedInProfile {
+export function mapVendorPayload(payload: VendorPayload, url: string | null): LinkedInProfile {
   const rawPositions = payload.experiences ?? payload.positions ?? []
   const positions = rawPositions
     .map((p) => {
@@ -154,6 +158,9 @@ export const httpProvider: ProfileProvider = {
     const endpoint = process.env.LINKEDIN_PROVIDER_URL
     const apiKey = process.env.LINKEDIN_PROVIDER_KEY
     if (!endpoint) return { ok: false, error: 'LINKEDIN_PROVIDER_URL is not set.' }
+    if (!claim.linkedinUrl) {
+      return { ok: false, error: 'No profile URL to look up. Sign-in proves who you are, not how long you have been in the role.' }
+    }
 
     const url = new URL(endpoint)
     url.searchParams.set('url', claim.linkedinUrl)
@@ -200,8 +207,11 @@ function monthsAgo(months: number): string {
 export const mockProvider: ProfileProvider = {
   name: 'mock',
   async fetch(claim) {
-    const handle = linkedinHandle(claim.linkedinUrl)
-    if (!handle) return { ok: false, error: 'That does not look like a LinkedIn profile URL.' }
+    // Seed off whatever identifies this person: the vanity URL if they gave
+    // one, otherwise the LinkedIn member id from sign-in.
+    const handle =
+      (claim.linkedinUrl ? linkedinHandle(claim.linkedinUrl) : null) ?? claim.identity?.sub ?? null
+    if (!handle) return { ok: false, error: 'No LinkedIn profile URL or signed-in identity to work from.' }
 
     const seed = hash(handle)
     // Spread across the interesting cases: most pass, some are too new in role,
@@ -211,7 +221,7 @@ export const mockProvider: ProfileProvider = {
 
     const profile: LinkedInProfile = {
       profileUrl: claim.linkedinUrl,
-      fullName: claim.fullName,
+      fullName: claim.identity?.fullName ?? claim.fullName,
       headline: claim.rawTitle,
       location: null,
       accountCreatedAt: monthsAgo(Math.max(accountAge, tenure)),
@@ -236,10 +246,17 @@ export const mockProvider: ProfileProvider = {
  * vendor endpoint if one is configured, and fall back to mock so the app is
  * always runnable.
  */
-export function activeProvider(): ProfileProvider {
+export function activeProvider(claim?: { linkedinUrl: string | null }): ProfileProvider {
   const configured = (process.env.LINKEDIN_PROVIDER ?? '').toLowerCase()
-  if (configured === 'http') return httpProvider
+  if (configured === 'http') {
+    // A vendor lookup needs a URL. Without one, fall back to the applicant's
+    // own declaration rather than failing them for a field we made optional.
+    return claim && !claim.linkedinUrl ? manualProvider : httpProvider
+  }
   if (configured === 'manual') return manualProvider
   if (configured === 'mock') return mockProvider
-  return process.env.LINKEDIN_PROVIDER_URL ? httpProvider : mockProvider
+  if (process.env.LINKEDIN_PROVIDER_URL) {
+    return claim && !claim.linkedinUrl ? manualProvider : httpProvider
+  }
+  return mockProvider
 }

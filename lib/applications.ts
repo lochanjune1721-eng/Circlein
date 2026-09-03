@@ -7,7 +7,8 @@ import { CITY_BY_SLUG } from '@/lib/taxonomy/cities'
 import { NICHE_BY_SLUG } from '@/lib/taxonomy/niches'
 import { normalizeTitle } from '@/lib/taxonomy/normalize'
 import { verifyApplication } from '@/lib/verification/run'
-import type { ApplicationClaim } from '@/lib/verification/types'
+import type { ApplicationClaim, VerifiedIdentity } from '@/lib/verification/types'
+import type { LinkedInIdentity } from '@/lib/supabase/auth'
 
 /**
  * The application lifecycle, from submitted request to a place in a WhatsApp
@@ -17,7 +18,8 @@ import type { ApplicationClaim } from '@/lib/verification/types'
 export interface SubmitInput {
   fullName: string
   email: string
-  linkedinUrl: string
+  /** Optional: LinkedIn sign-in does not hand out the vanity URL. */
+  linkedinUrl: string | null
   whatsapp: string
   citySlug: string
   nicheSlug: string
@@ -27,6 +29,8 @@ export interface SubmitInput {
   declaredStartedAt?: string | null
   ip?: string | null
   userAgent?: string | null
+  /** The signed-in LinkedIn identity, when there is one. */
+  identity?: LinkedInIdentity | null
 }
 
 export interface SubmitResult {
@@ -34,6 +38,8 @@ export interface SubmitResult {
   statusToken?: string
   status?: ApplicationStatus
   error?: string
+  /** True when this LinkedIn account already had a live application. */
+  alreadyApplied?: boolean
 }
 
 export function newStatusToken(): string {
@@ -81,6 +87,25 @@ export async function submitApplication(input: SubmitInput): Promise<SubmitResul
 
   const ipHash = input.ip ? hashIp(input.ip) : null
 
+  // One LinkedIn account, one live application. Checked up front so the person
+  // gets a sentence rather than a constraint violation.
+  if (input.identity) {
+    const { data: existing } = await db
+      .from('applications')
+      .select('status_token, status')
+      .eq('linkedin_sub', input.identity.sub)
+      .in('status', ['pending', 'verifying', 'needs_review', 'approved'])
+      .maybeSingle<{ status_token: string; status: ApplicationStatus }>()
+    if (existing) {
+      return {
+        ok: true,
+        statusToken: existing.status_token,
+        status: existing.status,
+        alreadyApplied: true,
+      }
+    }
+  }
+
   if (ipHash) {
     const since = new Date(Date.now() - 60 * 60 * 1000).toISOString()
     const { count } = await db
@@ -102,9 +127,16 @@ export async function submitApplication(input: SubmitInput): Promise<SubmitResul
     .from('applications')
     .insert({
       status: 'verifying' satisfies ApplicationStatus,
-      full_name: input.fullName,
-      email: input.email.toLowerCase(),
+      // LinkedIn's spelling of someone's name outranks the form's.
+      full_name: input.identity?.fullName ?? input.fullName,
+      email: (input.identity?.email ?? input.email).toLowerCase(),
       linkedin_url: input.linkedinUrl,
+      auth_user_id: input.identity?.authUserId ?? null,
+      linkedin_sub: input.identity?.sub ?? null,
+      linkedin_name: input.identity?.fullName ?? null,
+      linkedin_email: input.identity?.email ?? null,
+      linkedin_email_verified: input.identity?.emailVerified ?? false,
+      linkedin_picture: input.identity?.picture ?? null,
       whatsapp_e164: input.whatsapp,
       city: input.citySlug,
       niche: input.nicheSlug,
@@ -128,9 +160,20 @@ export async function submitApplication(input: SubmitInput): Promise<SubmitResul
     return { ok: false, error: insertError?.message ?? 'Could not record the application.' }
   }
 
+  const verifiedIdentity: VerifiedIdentity | null = input.identity
+    ? {
+        sub: input.identity.sub,
+        fullName: input.identity.fullName,
+        email: input.identity.email,
+        emailVerified: input.identity.emailVerified,
+        picture: input.identity.picture,
+      }
+    : null
+
   const claim: ApplicationClaim = {
-    fullName: input.fullName,
+    fullName: input.identity?.fullName ?? input.fullName,
     linkedinUrl: input.linkedinUrl,
+    identity: verifiedIdentity,
     rawTitle: input.rawTitle,
     company: input.company ?? null,
     citySlug: input.citySlug,
@@ -232,6 +275,9 @@ export async function admitMember(applicationId: string, headline: string | null
         seniority: app.seniority,
         company: app.company,
         headline,
+        auth_user_id: app.auth_user_id,
+        linkedin_sub: app.linkedin_sub,
+        linkedin_picture: app.linkedin_picture,
       },
       { onConflict: 'application_id' },
     )
@@ -311,6 +357,35 @@ export async function statusByToken(token: string): Promise<StatusView | null> {
     .eq('status_token', token)
     .single<ApplicationRow>()
   if (!app) return null
+  return statusForApplication(app)
+}
+
+/**
+ * The same view, found by session rather than by token.
+ *
+ * Row level security would already confine a signed-in member to their own
+ * row; the explicit `auth_user_id` filter here means the query is correct on
+ * its own terms too, rather than relying on the policy to save it.
+ */
+export async function statusForUser(authUserId: string): Promise<StatusView | null> {
+  const db = serviceClient()
+  if (!db) return null
+
+  const { data: rows } = await db
+    .from('applications')
+    .select('*')
+    .eq('auth_user_id', authUserId)
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+
+  const app = (rows ?? [])[0] as ApplicationRow | undefined
+  if (!app) return null
+  return statusForApplication(app)
+}
+
+async function statusForApplication(app: ApplicationRow): Promise<StatusView | null> {
+  const db = serviceClient()
+  if (!db) return null
 
   const { data: checks } = await db
     .from('verification_checks')
