@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { ApplyForm } from '@/components/apply-form'
-import { LinkedInButton } from '@/components/linkedin-button'
+import { LinkedInLink } from '@/components/linkedin-link'
 import { SignedInBadge } from '@/components/signed-in-badge'
-import { isServiceRoleConfigured, publicSupabaseConfig } from '@/lib/config'
+import { isServiceRoleConfigured } from '@/lib/config'
 import { cityOptions, roleOptions } from '@/lib/options'
 import { currentIdentity } from '@/lib/supabase/auth'
 
@@ -21,60 +22,30 @@ export default async function ApplyPage({
 }) {
   const { auth_error: authError } = await searchParams
   const identity = await currentIdentity()
-  const supabase = publicSupabaseConfig()
 
-  // Signing in comes first: it is how we know who is asking. Only once that is
-  // settled does the form appear.
+  // Not signed in and nothing went wrong? Then there is nothing to show here
+  // yet — go straight to LinkedIn. A page whose only content is a button is a
+  // click nobody asked for.
+  if (!identity && !authError) redirect('/auth/start')
+
+  // Something did go wrong. Show it, with one way onward. This branch must not
+  // redirect, or a failed sign-in would bounce between here and LinkedIn.
   if (!identity) {
     return (
       <div className="shell max-w-xl pb-24 pt-24">
         <p className="eyebrow">Request an invite</p>
-        <h1 className="mt-5 font-display text-[clamp(2.25rem,5vw,3.5rem)] leading-[1.05] text-bone">
-          Start with LinkedIn.
+        <h1 className="mt-5 font-display text-[clamp(2rem,4.5vw,3rem)] leading-[1.08] text-bone">
+          That didn&apos;t go through.
         </h1>
-        <p className="mt-5 text-[16px] leading-relaxed text-bone-dim">
-          Continue with LinkedIn so we know it is really you, and we will bring you straight back
-          here. No password to make, nothing to type twice.
+        <p
+          role="alert"
+          className="mt-6 rounded-lg border border-flag/40 bg-flag/10 px-4 py-3 text-[14px] leading-relaxed text-flag"
+        >
+          {authError}
         </p>
-
-        {authError ? (
-          <p
-            role="alert"
-            className="mt-8 rounded-lg border border-flag/40 bg-flag/10 px-4 py-3 text-[14px] text-flag"
-          >
-            LinkedIn sign-in did not complete: {authError}
-          </p>
-        ) : null}
-
-        <div className="mt-10">
-          {supabase ? (
-            <LinkedInButton
-              supabaseUrl={supabase.url}
-              supabaseAnonKey={supabase.anonKey}
-              label="Continue with LinkedIn"
-            />
-          ) : (
-            <div className="rounded-lg border border-flag/40 bg-flag/[0.07] px-4 py-4 text-[14px] text-bone-dim">
-              <p className="text-bone">This deployment has no Supabase keys, so sign-in cannot start.</p>
-              <p className="mt-2 leading-relaxed">
-                Set <span className="font-mono text-[13px]">SUPABASE_URL</span> and{' '}
-                <span className="font-mono text-[13px]">SUPABASE_ANON_KEY</span>, then reload.
-              </p>
-            </div>
-          )}
+        <div className="mt-8">
+          <LinkedInLink label="Try again with LinkedIn" />
         </div>
-
-        <p className="mt-8 text-[13px] leading-relaxed text-bone-faint">
-          We never post anything, and we never read your connections or messages.
-        </p>
-
-        <p className="mt-10 text-[13px] leading-relaxed text-bone-faint">
-          Already applied?{' '}
-          <Link href="/status" className="text-gold hover:text-gold-bright">
-            Check where it stands
-          </Link>
-          .
-        </p>
       </div>
     )
   }

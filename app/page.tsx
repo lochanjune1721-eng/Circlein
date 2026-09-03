@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { EventCard } from '@/components/event-card'
-import { LinkedInButton } from '@/components/linkedin-button'
+import { LinkedInLink } from '@/components/linkedin-link'
 import { POLICY, publicSupabaseConfig } from '@/lib/config'
 import { listEvents } from '@/lib/events'
 import { currentIdentity } from '@/lib/supabase/auth'
@@ -95,11 +95,7 @@ export default async function HomePage() {
                 Finish your request
               </Link>
             ) : supabase ? (
-              <LinkedInButton
-                supabaseUrl={supabase.url}
-                supabaseAnonKey={supabase.anonKey}
-                label="Sign in with LinkedIn"
-              />
+              <LinkedInLink label="Sign in with LinkedIn" />
             ) : (
               <Link href="/apply" className="btn-primary">
                 Request an invite
@@ -347,11 +343,7 @@ export default async function HomePage() {
                 Finish your request
               </Link>
             ) : supabase ? (
-              <LinkedInButton
-                supabaseUrl={supabase.url}
-                supabaseAnonKey={supabase.anonKey}
-                label="Sign in with LinkedIn"
-              />
+              <LinkedInLink label="Sign in with LinkedIn" />
             ) : (
               <Link href="/apply" className="btn-primary">
                 Request an invite

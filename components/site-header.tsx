@@ -57,12 +57,17 @@ export async function SiteHeader() {
               {/* A verified member coming back needs a way in that is not the
                   application form. */}
               <Link
-                href="/signin"
+                href="/auth/start"
+                prefetch={false}
                 className="text-[13px] text-bone-dim transition-colors hover:text-bone"
               >
                 Sign in
               </Link>
-              <Link href="/apply" className="btn-primary !px-5 !py-2 text-[13px]">
+              <Link
+                href="/auth/start"
+                prefetch={false}
+                className="btn-primary !px-5 !py-2 text-[13px]"
+              >
                 Request an invite
               </Link>
             </>

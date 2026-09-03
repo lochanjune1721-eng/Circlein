@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { LinkedInButton } from './linkedin-button'
+import { LinkedInLink } from './linkedin-link'
 
 /**
  * The standing invitation to sign in.
@@ -28,12 +28,7 @@ export function SignInPrompt({
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
         {supabase ? (
-          <LinkedInButton
-            supabaseUrl={supabase.url}
-            supabaseAnonKey={supabase.anonKey}
-            label="Sign in with LinkedIn"
-            className="btn-primary !px-5 !py-2.5 text-[13px]"
-          />
+          <LinkedInLink label="Sign in with LinkedIn" className="btn-primary !px-5 !py-2.5 text-[13px]" />
         ) : null}
         <Link href="/apply" className="btn-ghost !px-5 !py-2.5 text-[13px]">
           Request an invite

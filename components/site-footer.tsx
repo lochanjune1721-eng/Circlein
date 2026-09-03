@@ -10,7 +10,7 @@ const COLUMNS = [
       { href: '/events', label: 'Events' },
       { href: '/directory/niches', label: 'All niches' },
       { href: '/apply', label: 'Request an invite' },
-      { href: '/signin', label: 'Sign in' },
+      { href: '/auth/start', label: 'Sign in' },
       { href: '/status', label: 'Check your status' },
     ],
   },
