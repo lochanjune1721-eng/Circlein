@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { submitApplication } from '@/lib/applications'
 import { currentIdentity } from '@/lib/supabase/auth'
-import { anonymousApplySchema, applySchema, fieldErrors } from '@/lib/validation'
+import { applySchema, fieldErrors } from '@/lib/validation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -28,41 +28,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, statusToken: 'x', status: 'pending' })
   }
 
-  // The identity comes from the session cookie, never from the request body —
-  // otherwise anyone could post someone else's LinkedIn id and be verified as
-  // them.
-  const identity = await currentIdentity()
-
-  // Only when nobody is signed in does the form have to carry a name, an email
-  // and a profile URL of its own.
-  if (!identity) {
-    const anonymous = anonymousApplySchema.safeParse(body)
-    if (!anonymous.success) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: 'Sign in with LinkedIn, or fill in your details.',
-          fields: fieldErrors(anonymous.error),
-        },
-        { status: 422 },
-      )
-    }
-  }
-
   const forwarded = request.headers.get('x-forwarded-for')
   const ip = forwarded?.split(',')[0]?.trim() ?? request.headers.get('x-real-ip') ?? null
 
+  // Signing in is no longer required, but if someone happens to be signed in
+  // the verified identity is still worth recording against their application.
+  const identity = await currentIdentity()
+
   const result = await submitApplication({
-    fullName: identity?.fullName ?? parsed.data.fullName,
-    email: identity?.email ?? parsed.data.email,
-    linkedinUrl: parsed.data.linkedinUrl ?? null,
+    fullName: parsed.data.fullName,
     whatsapp: parsed.data.whatsapp,
+    linkedinUrl: parsed.data.linkedinUrl,
+    portfolioUrl: parsed.data.portfolioUrl || null,
     citySlug: parsed.data.citySlug,
-    nicheSlug: parsed.data.nicheSlug,
-    rawTitle: parsed.data.rawTitle,
-    company: parsed.data.company ?? null,
-    note: parsed.data.note ?? null,
-    declaredStartedAt: parsed.data.declaredStartedAt ?? null,
+    company: parsed.data.company,
+    roleSlug: parsed.data.roleSlug,
     identity,
     ip,
     userAgent: request.headers.get('user-agent'),

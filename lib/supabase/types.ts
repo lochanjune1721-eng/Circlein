@@ -21,8 +21,9 @@ export interface ApplicationRow {
   id: string
   status: ApplicationStatus
   full_name: string
-  email: string
+  email: string | null
   linkedin_url: string | null
+  portfolio_url: string | null
   whatsapp_e164: string
   city: string
   niche: string
@@ -78,8 +79,9 @@ export interface MemberRow {
   id: string
   application_id: string
   full_name: string
-  email: string
+  email: string | null
   linkedin_url: string | null
+  portfolio_url: string | null
   whatsapp_e164: string
   city: string
   niche: string

@@ -186,6 +186,23 @@ export function suggestNiches(roleSlug: Slug): Niche[] {
     .filter((n): n is Niche => Boolean(n))
 }
 
+/**
+ * The single best niche for a role.
+ *
+ * The application form asks for a role, not a niche — one fewer thing to
+ * choose, and the taxonomy already knows which niches a role family belongs
+ * to. The first is the best match by construction, since role families list
+ * their niches best-first.
+ */
+export function nicheForRole(roleSlug: Slug): Niche | null {
+  const role = ROLE_BY_SLUG.get(roleSlug)
+  if (role?.niche) {
+    const own = NICHE_BY_SLUG.get(role.niche)
+    if (own) return own
+  }
+  return suggestNiches(roleSlug)[0] ?? null
+}
+
 /** Generic name-or-alias lookup shared by the resolvers below. */
 function resolveByName<T extends { slug: string; name: string; aliases?: string[] }>(
   raw: string,

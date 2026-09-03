@@ -1,8 +1,8 @@
 # CircleIn
 
-A verified, city-scoped professional network. You do not browse it — you sign in with
-LinkedIn, request a place, and if you genuinely do the job you say you do, you are
-placed in a small WhatsApp group of people doing that same work in your city.
+A verified, city-scoped professional network. You do not browse it — you fill in one
+short form, and if you genuinely do the job you say you do, you are placed in a small
+WhatsApp group of people doing that same work in your city.
 
 The premise is the inverse of a big professional network: the smallest useful group,
 with a door on it.
@@ -14,7 +14,8 @@ with a door on it.
 | | |
 |---|---|
 | **Stack** | Next.js 15 (App Router), React 19, TypeScript, Tailwind, Supabase (Postgres) |
-| **Identity** | LinkedIn sign-in (OpenID Connect) through Supabase Auth |
+| **Applying** | One form, seven fields. The niche is derived from the role |
+| **Identity** | LinkedIn sign-in (OpenID Connect) via Supabase Auth — available, not required |
 | **Verification** | Deterministic date rules, then a Claude judge that can only ever be *more* cautious |
 | **Taxonomy** | 138 niches · 65 countries · 234 cities · 284 roles · 23 seniority levels |
 | **Events** | Evenings organised by CircleIn, RSVP gated on verified membership |
@@ -136,9 +137,13 @@ city (a dead end in the directory), or if the title parser regresses on a pinned
 The whole product rests on the door, so the order of operations matters and the
 asymmetry is deliberate.
 
-**1. Identity, settled at the door.** `lib/supabase/auth.ts`
+**1. Identity, when it is offered.** `lib/supabase/auth.ts`
 
-Signing in with LinkedIn means identity stops being a claim. LinkedIn asserts the
+Signing in is available at `/signin` but no longer gates applying — the form takes a
+LinkedIn URL instead, and records a verified identity against the application only
+when someone happens to be signed in.
+
+When they are, identity stops being a claim. LinkedIn asserts the
 name and the email and hands over a stable member id, which becomes the real key for
 a person — one LinkedIn account, one live application, enforced by a partial unique
 index rather than by hoping.
@@ -224,6 +229,13 @@ Business Development in both Business and Sales, Biotechnology in both Science a
 Healthcare — it lives in one and carries the other reading as an alias. The
 uniqueness check enforces this.
 
+**The form asks for a role, not a niche.** `nicheForRole()` derives the circle, because
+the taxonomy already knows where a role belongs and asking twice is asking twice. Role
+families group by *kind of work*, which is coarser than a niche — every scientist would
+have landed in Physics and every media role in Film — so 129 roles carry their own
+`niche`. The taxonomy check fails the build if any role resolves to nothing, or names a
+niche that does not exist.
+
 **Seniority is its own dimension.** There is no "Senior Backend Engineer" row.
 `normalizeTitle()` splits a raw title into role + seniority, which is what lets a
 search for backend engineers find someone at every stage of their career:
@@ -282,7 +294,7 @@ Every country has at least one city, checked in CI, so the directory never dead-
 ```
 app/
   page.tsx                       landing
-  apply/                         sign in with LinkedIn, then the request flow
+  apply/                         the request form — one page, seven fields
   signin/                        the way back in for an existing member
   auth/callback/                 OAuth code exchange, routed by who signed in
   auth/signout/

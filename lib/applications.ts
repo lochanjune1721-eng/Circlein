@@ -5,7 +5,8 @@ import { serviceClient } from '@/lib/supabase/server'
 import type { ApplicationRow, ApplicationStatus, VerificationReason } from '@/lib/supabase/types'
 import { CITY_BY_SLUG } from '@/lib/taxonomy/cities'
 import { NICHE_BY_SLUG } from '@/lib/taxonomy/niches'
-import { normalizeTitle } from '@/lib/taxonomy/normalize'
+import { nicheForRole } from '@/lib/taxonomy/normalize'
+import { ROLE_BY_SLUG } from '@/lib/taxonomy/roles'
 import { verifyApplication } from '@/lib/verification/run'
 import type { ApplicationClaim, VerifiedIdentity } from '@/lib/verification/types'
 import type { LinkedInIdentity } from '@/lib/supabase/auth'
@@ -17,19 +18,16 @@ import type { LinkedInIdentity } from '@/lib/supabase/auth'
 
 export interface SubmitInput {
   fullName: string
-  email: string
-  /** Optional: LinkedIn sign-in does not hand out the vanity URL. */
-  linkedinUrl: string | null
   whatsapp: string
+  linkedinUrl: string
+  portfolioUrl?: string | null
   citySlug: string
-  nicheSlug: string
-  rawTitle: string
-  company?: string | null
-  note?: string | null
-  declaredStartedAt?: string | null
+  company: string
+  /** The niche is derived from this rather than asked for separately. */
+  roleSlug: string
   ip?: string | null
   userAgent?: string | null
-  /** The signed-in LinkedIn identity, when there is one. */
+  /** The signed-in LinkedIn identity, if they happened to be signed in. */
   identity?: LinkedInIdentity | null
 }
 
@@ -83,26 +81,34 @@ export async function submitApplication(input: SubmitInput): Promise<SubmitResul
   }
 
   if (!CITY_BY_SLUG.has(input.citySlug)) return { ok: false, error: 'Unknown city.' }
-  if (!NICHE_BY_SLUG.has(input.nicheSlug)) return { ok: false, error: 'Unknown niche.' }
+
+  const role = ROLE_BY_SLUG.get(input.roleSlug)
+  if (!role) return { ok: false, error: 'Unknown role.' }
+
+  // The circle a person joins is city x niche, and the niche comes from their
+  // role. Every role resolves to one — asserted in the taxonomy check.
+  const niche = nicheForRole(role.slug)
+  if (!niche || !NICHE_BY_SLUG.has(niche.slug)) {
+    return { ok: false, error: 'That role has no circle yet.' }
+  }
+  const nicheSlug = niche.slug
 
   const ipHash = input.ip ? hashIp(input.ip) : null
 
-  // One LinkedIn account, one live application. Checked up front so the person
-  // gets a sentence rather than a constraint violation.
-  if (input.identity) {
-    const { data: existing } = await db
-      .from('applications')
-      .select('status_token, status')
-      .eq('linkedin_sub', input.identity.sub)
-      .in('status', ['pending', 'verifying', 'needs_review', 'approved'])
-      .maybeSingle<{ status_token: string; status: ApplicationStatus }>()
-    if (existing) {
-      return {
-        ok: true,
-        statusToken: existing.status_token,
-        status: existing.status,
-        alreadyApplied: true,
-      }
+  // One LinkedIn profile, one live application. Checked up front so a repeat
+  // applicant gets their existing status back rather than a constraint error.
+  const { data: existing } = await db
+    .from('applications')
+    .select('status_token, status')
+    .eq('linkedin_url', input.linkedinUrl)
+    .in('status', ['pending', 'verifying', 'needs_review', 'approved'])
+    .maybeSingle<{ status_token: string; status: ApplicationStatus }>()
+  if (existing) {
+    return {
+      ok: true,
+      statusToken: existing.status_token,
+      status: existing.status,
+      alreadyApplied: true,
     }
   }
 
@@ -118,9 +124,6 @@ export async function submitApplication(input: SubmitInput): Promise<SubmitResul
     }
   }
 
-  // Resolve the title into the taxonomy up front so the stored row is already
-  // structured, even before verification runs.
-  const parsed = normalizeTitle(input.rawTitle)
   const statusToken = newStatusToken()
 
   const { data: inserted, error: insertError } = await db
@@ -129,8 +132,9 @@ export async function submitApplication(input: SubmitInput): Promise<SubmitResul
       status: 'verifying' satisfies ApplicationStatus,
       // LinkedIn's spelling of someone's name outranks the form's.
       full_name: input.identity?.fullName ?? input.fullName,
-      email: (input.identity?.email ?? input.email).toLowerCase(),
+      email: input.identity?.email?.toLowerCase() ?? null,
       linkedin_url: input.linkedinUrl,
+      portfolio_url: input.portfolioUrl ?? null,
       auth_user_id: input.identity?.authUserId ?? null,
       linkedin_sub: input.identity?.sub ?? null,
       linkedin_name: input.identity?.fullName ?? null,
@@ -139,12 +143,12 @@ export async function submitApplication(input: SubmitInput): Promise<SubmitResul
       linkedin_picture: input.identity?.picture ?? null,
       whatsapp_e164: input.whatsapp,
       city: input.citySlug,
-      niche: input.nicheSlug,
-      role: parsed.role?.slug ?? null,
-      seniority: parsed.seniority?.slug ?? null,
-      company: input.company ?? null,
-      raw_title: input.rawTitle,
-      note: input.note ?? null,
+      niche: nicheSlug,
+      role: role.slug,
+      seniority: null,
+      company: input.company,
+      raw_title: role.name,
+      note: null,
       status_token: statusToken,
       ip_hash: ipHash,
       user_agent: input.userAgent ?? null,
@@ -174,13 +178,13 @@ export async function submitApplication(input: SubmitInput): Promise<SubmitResul
     fullName: input.identity?.fullName ?? input.fullName,
     linkedinUrl: input.linkedinUrl,
     identity: verifiedIdentity,
-    rawTitle: input.rawTitle,
-    company: input.company ?? null,
+    rawTitle: role.name,
+    company: input.company,
     citySlug: input.citySlug,
-    nicheSlug: input.nicheSlug,
-    roleSlug: parsed.role?.slug ?? null,
-    senioritySlug: parsed.seniority?.slug ?? null,
-    declaredStartedAt: input.declaredStartedAt ?? null,
+    nicheSlug,
+    roleSlug: role.slug,
+    senioritySlug: null,
+    declaredStartedAt: null,
   }
 
   try {
@@ -278,6 +282,7 @@ export async function admitMember(applicationId: string, headline: string | null
         auth_user_id: app.auth_user_id,
         linkedin_sub: app.linkedin_sub,
         linkedin_picture: app.linkedin_picture,
+        portfolio_url: app.portfolio_url,
       },
       { onConflict: 'application_id' },
     )

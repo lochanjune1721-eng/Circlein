@@ -2,6 +2,7 @@ import type { Option } from '@/components/combobox'
 import { CITIES, METRO_BY_SLUG } from '@/lib/taxonomy/cities'
 import { COUNTRY_BY_SLUG } from '@/lib/taxonomy/countries'
 import { NICHE_GROUPS } from '@/lib/taxonomy/niches'
+import { ROLE_FAMILIES } from '@/lib/taxonomy/roles'
 
 /**
  * Taxonomy shaped for the pickers. Built on the server and passed down, so the
@@ -37,6 +38,23 @@ export function nicheOptions(): Option[] {
       hint: group.name,
       section: group.name,
       terms: [niche.name, ...(niche.aliases ?? []), group.name],
+    })),
+  )
+}
+
+/**
+ * Roles for the application form. The form asks for a role rather than a
+ * niche — one fewer decision for the applicant, and the niche is derived from
+ * whichever they pick.
+ */
+export function roleOptions(): Option[] {
+  return ROLE_FAMILIES.flatMap((family) =>
+    family.roles.map((role) => ({
+      value: role.slug,
+      label: role.name,
+      hint: family.name,
+      section: family.name,
+      terms: [role.name, ...(role.aliases ?? []), family.name],
     })),
   )
 }

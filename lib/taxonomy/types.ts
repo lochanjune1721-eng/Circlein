@@ -77,6 +77,16 @@ export interface Role {
   slug: Slug
   name: string
   family: Slug
+  /**
+   * The niche this role belongs to, when the family's default is wrong for it.
+   *
+   * Families group roles by the kind of work, not by niche, so a family's first
+   * niche is only right for the roles at its centre. A Journalist and a
+   * Cinematographer share the Media family but not a circle; so do a Chemist
+   * and a Neuroscientist. Set this wherever that matters — it decides which
+   * room an applicant lands in.
+   */
+  niche?: Slug
   aliases?: string[]
 }
 

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { CITY_BY_SLUG } from '@/lib/taxonomy/cities'
-import { NICHE_BY_SLUG } from '@/lib/taxonomy/niches'
+import { ROLE_BY_SLUG } from '@/lib/taxonomy/roles'
 
 /**
  * Everything that crosses the network boundary is parsed here first. The
@@ -8,7 +8,7 @@ import { NICHE_BY_SLUG } from '@/lib/taxonomy/niches'
  */
 
 const linkedinUrl = z
-  .string()
+  .string({ error: 'Add your LinkedIn profile.' })
   .trim()
   .min(1, 'Add your LinkedIn profile.')
   .transform((value) => (value.startsWith('http') ? value : `https://${value}`))
@@ -21,68 +21,59 @@ const linkedinUrl = z
     }
   }, 'That should look like https://linkedin.com/in/your-name')
 
+/** Any http(s) URL. Portfolios live on every host there is. */
+const portfolioUrl = z
+  .string()
+  .trim()
+  .transform((value) => (value.startsWith('http') ? value : `https://${value}`))
+  .refine((value) => {
+    try {
+      const url = new URL(value)
+      return (url.protocol === 'https:' || url.protocol === 'http:') && url.hostname.includes('.')
+    } catch {
+      return false
+    }
+  }, 'That does not look like a link.')
+
 /**
  * Phone numbers arrive in every shape a keyboard allows. Strip the decoration,
  * keep a leading +, and require enough digits to be a real number.
  */
 const whatsapp = z
-  .string()
+  .string({ error: 'Add the number to add you on.' })
   .trim()
-  .min(1, 'Add the WhatsApp number you want to be added on.')
+  .min(1, 'Add the number to add you on.')
   .transform((value) => {
     const digits = value.replace(/[^\d+]/g, '')
     return digits.startsWith('+') ? `+${digits.slice(1).replace(/\D/g, '')}` : `+${digits.replace(/\D/g, '')}`
   })
   .refine((value) => /^\+\d{8,15}$/.test(value), 'Include the country code, e.g. +91 98765 43210.')
 
+/**
+ * The whole form, asked on one page.
+ *
+ * Notably absent: email, and any choice of niche. Everything reaches a member
+ * through WhatsApp, and the niche is derived from the role they pick — the
+ * taxonomy already knows which niches a role belongs to, so asking would be
+ * asking the same question twice.
+ */
 export const applySchema = z.object({
-  /**
-   * Name and email are only read when nobody is signed in. With a LinkedIn
-   * session the server takes both from the identity and ignores whatever the
-   * form posted, so these cannot be used to apply as someone else.
-   */
-  fullName: z.string().trim().max(120).optional().default(''),
-  email: z.string().trim().toLowerCase().max(200).optional().default(''),
-  /** Optional: sign-in proves who you are, the URL is only for the tenure lookup. */
-  linkedinUrl: linkedinUrl.optional().nullable(),
+  fullName: z.string({ error: 'Add your name.' }).trim().min(2, 'Add your name.').max(120),
   whatsapp,
-  citySlug: z.string().refine((s) => CITY_BY_SLUG.has(s), 'Pick a city from the list.'),
-  nicheSlug: z.string().refine((s) => NICHE_BY_SLUG.has(s), 'Pick a niche from the list.'),
-  rawTitle: z.string().trim().min(2, 'What is your job title?').max(160),
-  company: z.string().trim().max(160).optional().nullable(),
-  note: z.string().trim().max(600).optional().nullable(),
-  declaredStartedAt: z
-    .string()
-    .trim()
-    .regex(/^\d{4}-\d{2}(-\d{2})?$/, 'Use YYYY-MM.')
-    .optional()
-    .nullable()
-    .transform((v) => (v ? (v.length === 7 ? `${v}-01` : v) : null)),
+  linkedinUrl,
+  portfolioUrl: z.union([portfolioUrl, z.literal('')]).optional().nullable(),
+  citySlug: z
+    .string({ error: 'Pick your city.' })
+    .refine((s) => CITY_BY_SLUG.has(s), 'Pick a city from the list.'),
+  company: z.string({ error: 'Where do you work?' }).trim().min(1, 'Where do you work?').max(160),
+  roleSlug: z
+    .string({ error: 'Pick your role.' })
+    .refine((s) => ROLE_BY_SLUG.has(s), 'Pick a role from the list.'),
   /** Honeypot: a real person never fills this in. */
   website: z.string().max(0).optional(),
 })
 
 export type ApplyInput = z.infer<typeof applySchema>
-
-/**
- * The extra fields required when there is no LinkedIn session. Applied on top
- * of `applySchema` by the route, so the signed-in path never has to satisfy
- * them.
- */
-export const anonymousApplySchema = z.object({
-  // The `error` argument covers a missing key too, so a field left out of the
-  // request reads the same as one left blank in the form. Without it Zod says
-  // "expected string, received undefined", which then renders under an input.
-  fullName: z.string({ error: 'Add your name.' }).trim().min(2, 'Add your name.').max(120),
-  email: z
-    .string({ error: 'Add your email.' })
-    .trim()
-    .toLowerCase()
-    .pipe(z.email('That email does not look right.')),
-  linkedinUrl: z
-    .string({ error: 'Add your LinkedIn profile, or sign in with LinkedIn instead.' })
-    .pipe(linkedinUrl),
-})
 
 /** Turn a Zod failure into field -> first message, for rendering next to inputs. */
 export function fieldErrors(error: z.ZodError): Record<string, string> {

@@ -11,7 +11,7 @@ import { COUNTRIES, COUNTRY_BY_SLUG } from '../lib/taxonomy/countries'
 import { NICHES, NICHE_GROUPS } from '../lib/taxonomy/niches'
 import { ROLES, ROLE_FAMILIES } from '../lib/taxonomy/roles'
 import { SENIORITY } from '../lib/taxonomy/seniority'
-import { canonicalise, normalizeTitle, resolveLocation } from '../lib/taxonomy/normalize'
+import { canonicalise, nicheForRole, normalizeTitle, resolveLocation } from '../lib/taxonomy/normalize'
 import { NICHE_BY_SLUG } from '../lib/taxonomy/niches'
 
 const problems: string[] = []
@@ -85,12 +85,21 @@ for (const family of ROLE_FAMILIES) {
   }
   for (const role of family.roles) {
     if (role.family !== family.slug) problems.push(`role "${role.slug}" declares family "${role.family}" but sits under "${family.slug}"`)
+    if (role.niche && !NICHE_BY_SLUG.has(role.niche)) {
+      problems.push(`role "${role.slug}" declares unknown niche "${role.niche}"`)
+    }
   }
 }
 
 // Every country must be reachable in the directory.
 for (const country of COUNTRIES) {
   if (citiesInCountry(country.slug).length === 0) problems.push(`country "${country.slug}" has no cities — dead end in the directory`)
+}
+
+// The application form derives a niche from the role rather than asking, so a
+// role that maps to nothing would leave an applicant with no circle to join.
+for (const role of ROLES) {
+  if (!nicheForRole(role.slug)) problems.push(`role "${role.slug}" resolves to no niche`)
 }
 
 // Behavioural checks on the normaliser, which the verification step depends on.
