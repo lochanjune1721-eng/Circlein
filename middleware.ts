@@ -37,9 +37,15 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Everything except static assets and image files — the session only needs
-     * refreshing on requests that could render or mutate something.
+     * Everything except static assets, image files — and /auth.
+     *
+     * /auth is excluded deliberately, not for speed. The callback arrives with
+     * a PKCE code verifier in a cookie and no session yet. This middleware
+     * calls getUser() on every matched request, and that call, finding no valid
+     * session, can clear the sb-* cookies — the verifier among them — before
+     * the route handler ever gets to exchange the code. The exchange then fails
+     * and the person is bounced back to a sign-in screen having just signed in.
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|auth/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

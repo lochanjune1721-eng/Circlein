@@ -6,11 +6,12 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 /**
- * Where LinkedIn sends the member back to.
+ * Where LinkedIn sends people back to.
  *
- * Exchanges the one-time code for a session and writes the cookies, then
- * returns them to wherever they were headed. Errors land on /apply with a
- * readable message rather than a blank page.
+ * Exchanges the one-time code for a session, writes the cookies, and forwards
+ * them on. Note that middleware.ts deliberately does not run on this path: the
+ * PKCE verifier arrives in a cookie, and a getUser() call before the exchange
+ * can clear it.
  */
 export async function GET(request: Request) {
   const url = new URL(request.url)
@@ -26,14 +27,20 @@ export async function GET(request: Request) {
       ? requested
       : 'auto'
 
-  // Anything that went wrong belongs on /signin — that is the page about
-  // signing in, and it renders auth_error. Sending someone to the application
-  // form instead just loses the thread.
   const failed = (reason: string) =>
-    NextResponse.redirect(new URL(`/signin?auth_error=${encodeURIComponent(reason)}`, url.origin))
+    NextResponse.redirect(`${url.origin}/signin?auth_error=${encodeURIComponent(reason)}`)
 
   if (oauthError) return failed(oauthError)
-  if (!code) return failed('LinkedIn returned no authorisation code.')
+
+  // No code and no error means Supabase never sent one — almost always because
+  // this callback URL is not in the project's Redirect URLs allow-list, so
+  // Supabase bounced to the Site URL instead of here with a code.
+  if (!code) {
+    return failed(
+      'No sign-in code arrived. Add this exact URL to Supabase → Authentication → URL Configuration → Redirect URLs: ' +
+        `${url.origin}/auth/callback`,
+    )
+  }
 
   const supabase = await sessionClient()
   if (!supabase) return failed('This deployment has no SUPABASE_URL / SUPABASE_ANON_KEY.')
@@ -41,9 +48,14 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.auth.exchangeCodeForSession(code)
   if (error) return failed(error.message)
 
-  if (next !== 'auto') return NextResponse.redirect(new URL(next, url.origin))
-
+  // A successful exchange that somehow produced no user would otherwise send
+  // someone back to a sign-in screen with no explanation, right after they
+  // signed in — the single most confusing outcome there is. Say so instead.
   const identity = data.user ? identityFromUser(data.user) : null
-  const destination = identity ? await destinationForUser(identity.authUserId) : '/apply'
-  return NextResponse.redirect(new URL(destination, url.origin))
+  if (!identity) {
+    return failed('Signed in, but no profile came back from LinkedIn. Try once more.')
+  }
+
+  const destination = next !== 'auto' ? next : await destinationForUser(identity.authUserId)
+  return NextResponse.redirect(`${url.origin}${destination}`)
 }
