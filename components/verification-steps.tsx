@@ -1,5 +1,3 @@
-import { POLICY } from '@/lib/config'
-
 /**
  * The four things that happen between sending a request and being in the
  * group. Written plainly, because the whole value of the door is that people
@@ -8,23 +6,23 @@ import { POLICY } from '@/lib/config'
 const STEPS = [
   {
     n: '01',
-    title: 'You send a request',
-    body: 'Your name, your LinkedIn, the job you do, and the city and niche you want to sit in. Two minutes, no account, no password.',
+    title: 'You ask',
+    body: 'Continue with LinkedIn so we know it is you, then six quick things: your city, your company, your role, and the number to reach you on.',
   },
   {
     n: '02',
-    title: 'We read the profile',
-    body: 'An automated check pulls your profile and looks at the two things that are hard to fake: how long the account has existed, and how long you have held the role you applied with.',
+    title: 'We verify',
+    body: 'Every request is checked against the profile behind it before anyone is let in. That is the whole reason a CircleIn room is worth being in.',
   },
   {
     n: '03',
-    title: 'The numbers have to hold',
-    body: `At least ${POLICY.minTenureMonths} months in the current role, and an account at least ${POLICY.minAccountAgeMonths} months old. These are arithmetic, not opinion — nothing talks its way past them.`,
+    title: 'We find your room',
+    body: 'Your city and your work decide which circle fits — a small group of people who already do what you do, where you do it.',
   },
   {
     n: '04',
-    title: 'Then a judgement call',
-    body: 'The check reads your title and history the way a person would, and asks whether the work genuinely fits the circle you chose. Anything it is unsure about goes to a human rather than being guessed.',
+    title: 'You are added',
+    body: 'On WhatsApp, on the number you gave us. Then it is just people talking, which was the point.',
   },
 ]
 

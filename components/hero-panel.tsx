@@ -1,5 +1,3 @@
-import { POLICY } from '@/lib/config'
-
 /**
  * An illustration of the check, not a record of anyone.
  *
@@ -10,11 +8,11 @@ import { POLICY } from '@/lib/config'
  * the site.
  */
 
-const CHECKS: { label: string; detail: string; state: 'pass' | 'pending' }[] = [
-  { label: 'LinkedIn account age', detail: '6 years', state: 'pass' },
-  { label: 'Time in current role', detail: `19 months · ${POLICY.minTenureMonths} required`, state: 'pass' },
-  { label: 'Role matches the profile', detail: 'Machine Learning Engineer', state: 'pass' },
-  { label: 'City matches the profile', detail: 'Bengaluru, Karnataka', state: 'pass' },
+const CHECKS: { label: string; detail: string }[] = [
+  { label: 'LinkedIn confirmed', detail: 'A. Raghavan' },
+  { label: 'Role confirmed', detail: 'Machine Learning Engineer' },
+  { label: 'City confirmed', detail: 'Bengaluru' },
+  { label: 'Circle assigned', detail: 'Machine Learning' },
 ]
 
 export function HeroPanel() {

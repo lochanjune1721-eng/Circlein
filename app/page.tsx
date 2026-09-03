@@ -126,7 +126,7 @@ export default async function HomePage() {
             <StatBlock value={String(nicheCount)} label="Niches, not job boards" />
             <StatBlock value={String(cityCount)} label="Cities with real rooms" />
             <StatBlock value={String(roleCount)} label="Specific roles mapped" />
-            <StatBlock value={`${POLICY.minTenureMonths} mo`} label="Minimum time in the job" />
+            <StatBlock value="0" label="Ways to buy your way in" />
           </div>
         </div>
       </section>
@@ -168,10 +168,9 @@ export default async function HomePage() {
             You request. We check. Then you are in the group.
           </h2>
           <p className="mt-5 max-w-prose text-[16px] leading-relaxed text-bone-dim">
-            There is no public sign-up. You send a request, and an automated check reads your
-            LinkedIn the way a careful person would — how long the account has existed, how long you
-            have actually held the job you say you hold, and whether the work matches the circle you
-            picked.
+            There is no public sign-up. You continue with LinkedIn so we know it is you, tell us
+            what you do and where, and every request is verified against the profile behind it
+            before anyone is let in.
           </p>
 
           <VerificationSteps className="mt-14" />
@@ -336,7 +335,7 @@ export default async function HomePage() {
       <section className="rule">
         <div className="shell py-24 text-center">
           <h2 className="mx-auto max-w-3xl text-balance font-display text-[clamp(2.25rem,5vw,3.75rem)] leading-[1.05] text-bone">
-            If you have been doing the job for {POLICY.minTenureMonths} months, there is a seat.
+            If you do the work, there is a seat.
           </h2>
           <p className="mx-auto mt-6 max-w-md text-[16px] leading-relaxed text-bone-dim">
             Requests are checked in the order they arrive. You will hear back with a decision and,

@@ -49,6 +49,14 @@ function hashIp(ip: string): string {
   return createHash('sha256').update(`circlein:${ip}`).digest('hex').slice(0, 32)
 }
 
+/**
+ * What an applicant may see about their own request.
+ *
+ * Deliberately thin. The verdict's reasoning lives in verification_checks and
+ * is shown to whoever reviews applications — never here. An applicant learns
+ * that their request is being verified, and later that they are in; not which
+ * rule decided it or what the thresholds are.
+ */
 export interface StatusView {
   status: ApplicationStatus
   fullName: string
@@ -58,8 +66,6 @@ export interface StatusView {
   senioritySlug: string | null
   submittedAt: string
   decidedAt: string | null
-  decisionNote: string | null
-  reasons: VerificationReason[]
   whatsapp: {
     state: string
     groupName: string | null
@@ -392,13 +398,6 @@ async function statusForApplication(app: ApplicationRow): Promise<StatusView | n
   const db = serviceClient()
   if (!db) return null
 
-  const { data: checks } = await db
-    .from('verification_checks')
-    .select('reasons')
-    .eq('application_id', app.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-
   let whatsapp: StatusView['whatsapp'] = null
   if (app.status === 'approved') {
     const { data: member } = await db
@@ -416,8 +415,6 @@ async function statusForApplication(app: ApplicationRow): Promise<StatusView | n
     }
   }
 
-  const reasons = (checks?.[0] as { reasons?: VerificationReason[] } | undefined)?.reasons ?? []
-
   return {
     status: app.status,
     fullName: app.full_name,
@@ -427,8 +424,6 @@ async function statusForApplication(app: ApplicationRow): Promise<StatusView | n
     senioritySlug: app.seniority,
     submittedAt: app.submitted_at,
     decidedAt: app.decided_at,
-    decisionNote: app.decision_note,
-    reasons,
     whatsapp,
   }
 }

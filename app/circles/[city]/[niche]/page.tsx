@@ -93,9 +93,8 @@ export default async function CirclePage({
                 <span className="text-bone">
                   {members} verified {members === 1 ? 'member' : 'members'}
                 </span>{' '}
-                across {groupsNeeded} {groupsNeeded === 1 ? 'group' : 'groups'}. Everyone here has
-                been doing this work for at least {POLICY.minTenureMonths} months, checked against
-                their LinkedIn.
+                across {groupsNeeded} {groupsNeeded === 1 ? 'group' : 'groups'}. Every one of them
+                was verified before being let in.
               </>
             ) : (
               <>

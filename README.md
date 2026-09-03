@@ -1,8 +1,9 @@
 # CircleIn
 
-A verified, city-scoped professional network. You do not browse it — you fill in one
-short form, and if you genuinely do the job you say you do, you are placed in a small
-WhatsApp group of people doing that same work in your city.
+A verified, city-scoped professional network. You do not browse it — you continue with
+LinkedIn, tell us what you do and where, and if you genuinely do the job you say you
+do, you are placed in a small WhatsApp group of people doing that same work in your
+city.
 
 The premise is the inverse of a big professional network: the smallest useful group,
 with a door on it.
@@ -14,8 +15,8 @@ with a door on it.
 | | |
 |---|---|
 | **Stack** | Next.js 15 (App Router), React 19, TypeScript, Tailwind, Supabase (Postgres) |
-| **Applying** | One form, seven fields. The niche is derived from the role |
-| **Identity** | LinkedIn sign-in (OpenID Connect) via Supabase Auth — available, not required |
+| **Applying** | LinkedIn sign-in, then one form. The niche is derived from the role |
+| **Identity** | LinkedIn sign-in (OpenID Connect) via Supabase Auth — required to apply |
 | **Verification** | Deterministic date rules, then a Claude judge that can only ever be *more* cautious |
 | **Taxonomy** | 138 niches · 65 countries · 234 cities · 284 roles · 23 seniority levels |
 | **Events** | Evenings organised by CircleIn, RSVP gated on verified membership |
@@ -245,6 +246,16 @@ the reviewer exactly what the machine saw.
 
 Every check is written to `verification_checks` with its reasons, so a decision can
 always be explained or appealed.
+
+**None of this is shown to applicants.** The thresholds, the rule names and the
+reasoning stay in the admin queue. An applicant is told their request is being
+verified and, once approved, that they are being added to their group — never which
+rule decided it or what the numbers are. Criteria you publish are criteria people
+write a profile to satisfy, and the room is worth less to everyone already in it.
+
+That constraint is load-bearing in the UI: `StatusView` deliberately carries no
+reasons and no decision note, and every applicant-facing state that is still in
+progress reads identically, so the wording cannot leak the stage a request is at.
 
 ---
 

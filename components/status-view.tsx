@@ -3,13 +3,6 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 
-interface Reason {
-  rule: string
-  label: string
-  passed: boolean
-  detail: string
-}
-
 interface Application {
   status: 'pending' | 'verifying' | 'needs_review' | 'approved' | 'rejected' | 'withdrawn'
   fullName: string
@@ -19,18 +12,51 @@ interface Application {
   senioritySlug: string | null
   submittedAt: string
   decidedAt: string | null
-  decisionNote: string | null
-  reasons: Reason[]
   whatsapp: { state: string; groupName: string | null } | null
 }
 
-const HEADLINE: Record<Application['status'], { eyebrow: string; title: string }> = {
-  pending: { eyebrow: 'Received', title: 'In the queue.' },
-  verifying: { eyebrow: 'Checking', title: 'Reading your profile.' },
-  needs_review: { eyebrow: 'With a person', title: 'Almost there.' },
-  approved: { eyebrow: 'Verified', title: "You're in." },
-  rejected: { eyebrow: 'Not this time', title: 'Not yet.' },
-  withdrawn: { eyebrow: 'Withdrawn', title: 'This request was withdrawn.' },
+/**
+ * What each state looks like to the applicant.
+ *
+ * Everything still being worked on reads the same, on purpose — an applicant
+ * has no use for the difference between "queued" and "with a reviewer", and
+ * spelling it out would describe the process. The reasoning is in the admin
+ * queue, not here.
+ */
+const HEADLINE: Record<
+  Application['status'],
+  { eyebrow: string; title: string; body: string }
+> = {
+  pending: {
+    eyebrow: 'With us',
+    title: 'We have your request.',
+    body: 'We will verify it and let you know. It usually takes under a day.',
+  },
+  verifying: {
+    eyebrow: 'With us',
+    title: 'We have your request.',
+    body: 'We will verify it and let you know. It usually takes under a day.',
+  },
+  needs_review: {
+    eyebrow: 'With us',
+    title: 'We have your request.',
+    body: 'We will verify it and let you know. It usually takes under a day.',
+  },
+  approved: {
+    eyebrow: 'You are in',
+    title: 'Welcome to CircleIn.',
+    body: 'We are adding you to the group that fits you best — watch the number you gave us.',
+  },
+  rejected: {
+    eyebrow: 'Closed',
+    title: 'We could not place you this time.',
+    body: 'Things change — you are welcome to ask again later.',
+  },
+  withdrawn: {
+    eyebrow: 'Withdrawn',
+    title: 'This request was withdrawn.',
+    body: 'Ask again whenever you like.',
+  },
 }
 
 const WHATSAPP_COPY: Record<string, string> = {
@@ -133,11 +159,9 @@ export function StatusView({
             {HEADLINE[application.status].title}
           </h2>
 
-          {application.decisionNote ? (
-            <p className="mt-5 max-w-prose text-[16px] leading-relaxed text-bone-dim">
-              {application.decisionNote}
-            </p>
-          ) : null}
+          <p className="mt-5 max-w-prose text-[16px] leading-relaxed text-bone-dim">
+            {HEADLINE[application.status].body}
+          </p>
 
           {application.whatsapp ? (
             <div className="mt-8 rounded-xl border border-verified/40 bg-verified/[0.07] p-6">
@@ -148,35 +172,6 @@ export function StatusView({
               <p className="mt-2 text-[14px] text-bone-dim">
                 {WHATSAPP_COPY[application.whatsapp.state] ?? WHATSAPP_COPY.queued}
               </p>
-            </div>
-          ) : null}
-
-          {application.reasons.length > 0 ? (
-            <div className="mt-10">
-              <h3 className="eyebrow">What the check found</h3>
-              <ul className="mt-5 space-y-px overflow-hidden rounded-xl border border-ink-line bg-ink-line">
-                {application.reasons.map((reason, i) => (
-                  <li key={`${reason.rule}-${i}`} className="flex gap-4 bg-ink-card px-5 py-4">
-                    <span
-                      aria-hidden="true"
-                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] ${
-                        reason.passed
-                          ? 'bg-verified/15 text-verified'
-                          : 'bg-flag/15 text-flag'
-                      }`}
-                    >
-                      {reason.passed ? '✓' : '!'}
-                    </span>
-                    <div>
-                      <p className="text-[14px] text-bone">
-                        {reason.label}
-                        <span className="sr-only">: {reason.passed ? 'passed' : 'not passed'}</span>
-                      </p>
-                      <p className="mt-1 text-[13px] leading-relaxed text-bone-dim">{reason.detail}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
             </div>
           ) : null}
 

@@ -33,8 +33,7 @@ export function SiteFooter() {
           <Wordmark />
           <p className="mt-4 max-w-xs text-[14px] leading-relaxed text-bone-faint">
             A verified network of people doing the same work in the same city. Every member is
-            checked before they are let in — at least {POLICY.minTenureMonths} months in the role,
-            every time.
+            checked before they are let in.
           </p>
         </div>
 

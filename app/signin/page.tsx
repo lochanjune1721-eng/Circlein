@@ -77,8 +77,7 @@ export default async function SignInPage({
       <div className="mt-12 border-t border-ink-line pt-8">
         <h2 className="font-display text-2xl text-bone">Not a member yet?</h2>
         <p className="mt-3 max-w-prose text-[15px] leading-relaxed text-bone-dim">
-          There is no public sign-up. Request an invite, and if you have been doing your job for at
-          least {POLICY.minTenureMonths} months, you are welcome.
+          There is no public sign-up. Ask for an invite and we will take it from there.
         </p>
         <Link href="/apply" className="btn-ghost mt-5">
           Request an invite

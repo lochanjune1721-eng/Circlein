@@ -16,7 +16,6 @@ import { Combobox, type Option } from './combobox'
 interface Props {
   cities: Option[]
   roles: Option[]
-  minTenureMonths: number
   /** False when the deployment has no database yet; the form says so rather than failing. */
   intakeOpen: boolean
 }
@@ -32,7 +31,7 @@ interface SubmitResponse {
   alreadyApplied?: boolean
 }
 
-export function ApplyForm({ cities, roles, minTenureMonths, intakeOpen }: Props) {
+export function ApplyForm({ cities, roles, intakeOpen }: Props) {
   const [fullName, setFullName] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [linkedinUrl, setLinkedinUrl] = useState('')
@@ -90,12 +89,7 @@ export function ApplyForm({ cities, roles, minTenureMonths, intakeOpen }: Props)
 
   if (result?.ok) {
     return (
-      <Outcome
-        status={result.status ?? 'pending'}
-        statusToken={result.statusToken}
-        alreadyApplied={result.alreadyApplied ?? false}
-        minTenureMonths={minTenureMonths}
-      />
+      <Outcome statusToken={result.statusToken} alreadyApplied={result.alreadyApplied ?? false} />
     )
   }
 
@@ -150,7 +144,6 @@ export function ApplyForm({ cities, roles, minTenureMonths, intakeOpen }: Props)
           value={linkedinUrl}
           onChange={setLinkedinUrl}
           placeholder="linkedin.com/in/your-name"
-          hint={`This is what we check — you need at least ${minTenureMonths} months in your current role.`}
           error={fieldErrors.linkedinUrl}
           autoComplete="url"
         />
@@ -276,82 +269,39 @@ function Field({
   )
 }
 
-/** What the applicant sees the moment the check finishes. */
+/**
+ * What the applicant sees once their request is in.
+ *
+ * Deliberately the same whatever the automated check decided. The verdict and
+ * its reasoning are recorded for whoever reviews applications; an applicant is
+ * told that their request is being verified and nothing about how. Publishing
+ * the criteria would only teach people how to meet them on paper.
+ *
+ * Note what it does not promise: "once you are in" keeps the group placement
+ * conditional, so nobody who is later turned down was told otherwise.
+ */
 function Outcome({
-  status,
   statusToken,
   alreadyApplied,
-  minTenureMonths,
 }: {
-  status: Status
   statusToken?: string
   alreadyApplied: boolean
-  minTenureMonths: number
 }) {
   const statusHref = statusToken ? `/status?token=${encodeURIComponent(statusToken)}` : '/status'
 
   if (alreadyApplied) {
     return (
       <div className="animate-rise text-center">
-        <p className="eyebrow">Already in the queue</p>
+        <p className="eyebrow">Already with us</p>
         <h2 className="mt-4 font-display text-4xl leading-tight text-bone sm:text-5xl">
-          You have already applied.
+          You have already asked.
         </h2>
         <p className="mx-auto mt-5 max-w-md text-[16px] leading-relaxed text-bone-dim">
-          That LinkedIn profile already has a live request. Here is where it stands.
+          There is a request against your LinkedIn already. Here is where it stands.
         </p>
         <div className="mt-8">
           <Link href={statusHref} className="btn-primary">
             See your request
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (status === 'approved') {
-    return (
-      <div className="animate-rise text-center">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-verified/50 bg-verified/10 text-2xl text-verified">
-          ✓
-        </div>
-        <p className="eyebrow mt-8">Verified</p>
-        <h2 className="mt-4 font-display text-4xl leading-tight text-bone sm:text-5xl">
-          You&apos;re in.
-        </h2>
-        <p className="mx-auto mt-5 max-w-md text-[16px] leading-relaxed text-bone-dim">
-          Your profile checked out. You will be added to your circle&apos;s WhatsApp group
-          shortly — keep an eye on the number you gave us.
-        </p>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <Link href={statusHref} className="btn-primary">
-            See your place in the queue
-          </Link>
-          <Link href="/directory" className="btn-ghost">
-            Browse other circles
-          </Link>
-        </div>
-        <p className="mt-6 text-[13px] text-bone-faint">
-          Save that link — it is the only way back to your application.
-        </p>
-      </div>
-    )
-  }
-
-  if (status === 'rejected') {
-    return (
-      <div className="animate-rise text-center">
-        <p className="eyebrow">Not this time</p>
-        <h2 className="mt-4 font-display text-4xl leading-tight text-bone sm:text-5xl">
-          Not yet — but soon.
-        </h2>
-        <p className="mx-auto mt-5 max-w-md text-[16px] leading-relaxed text-bone-dim">
-          CircleIn asks for at least {minTenureMonths} months in the role you applied with. Come back
-          once you have passed that and you are welcome to apply again.
-        </p>
-        <div className="mt-8">
-          <Link href={statusHref} className="btn-ghost">
-            See the full reasoning
           </Link>
         </div>
       </div>
@@ -363,21 +313,27 @@ function Outcome({
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-gold/40 bg-gold/10">
         <span className="h-2.5 w-2.5 animate-sweep rounded-full bg-gold" aria-hidden="true" />
       </div>
-      <p className="eyebrow mt-8">With a person</p>
+
+      <p className="eyebrow mt-8">Request received</p>
       <h2 className="mt-4 font-display text-4xl leading-tight text-bone sm:text-5xl">
-        Almost there.
+        That&apos;s everything we need.
       </h2>
       <p className="mx-auto mt-5 max-w-md text-[16px] leading-relaxed text-bone-dim">
-        The numbers checked out, but one detail needs a human eye before we let you in. That
-        usually takes under a day, and you will hear either way.
+        We will verify your request and, once you are in, add you to the group that fits you
+        best — on the number you gave us.
       </p>
-      <div className="mt-8">
+
+      <div className="mt-8 flex flex-wrap justify-center gap-3">
         <Link href={statusHref} className="btn-primary">
           Track your request
         </Link>
+        <Link href="/directory" className="btn-ghost">
+          Browse the circles
+        </Link>
       </div>
+
       <p className="mt-6 text-[13px] text-bone-faint">
-        Save that link — it is the only way back to your application.
+        Save that link — it is how you check back.
       </p>
     </div>
   )
