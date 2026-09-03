@@ -53,9 +53,13 @@ export function LinkedInButton({
       provider: 'linkedin_oidc',
       options: {
         redirectTo: callback,
-        // The three scopes LinkedIn's OpenID Connect product offers. There is
-        // no scope that returns work history — see the README.
-        scopes: 'openid profile email',
+        // Scopes are deliberately not set here.
+        //
+        // Supabase's linkedin_oidc provider already requests exactly openid,
+        // profile and email — the only three that product offers. Passing them
+        // again is at best redundant, and GoTrue appends the `scopes` option to
+        // its defaults rather than replacing them, which sends LinkedIn a
+        // duplicated scope string. LinkedIn is strict about that parameter.
       },
     })
 
