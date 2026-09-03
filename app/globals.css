@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ink text-bone font-sans antialiased;
+    /* A very fine warm grain keeps large dark areas from looking like a void. */
+    background-image: radial-gradient(
+      ellipse 120% 80% at 50% -10%,
+      rgba(216, 166, 87, 0.06),
+      transparent 60%
+    );
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    @apply bg-gold text-ink;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-gold/70 ring-offset-2 ring-offset-ink rounded-sm;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Small-caps section label. Used above almost every heading on the site. */
+  .eyebrow {
+    @apply text-[11px] font-medium uppercase tracking-eyebrow text-gold;
+  }
+
+  .rule {
+    @apply border-t border-ink-line;
+  }
+
+  .shell {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+
+  .card {
+    @apply rounded-xl border border-ink-line bg-ink-card;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-medium
+           transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-gold text-ink hover:bg-gold-bright hover:shadow-[0_0_28px_-6px_rgba(216,166,87,0.55)];
+  }
+
+  .btn-ghost {
+    @apply btn border border-ink-soft text-bone hover:border-gold/60 hover:text-gold;
+  }
+
+  .field {
+    @apply w-full rounded-lg border border-ink-line bg-ink-raised px-4 py-3 text-[15px] text-bone
+           placeholder:text-bone-faint transition-colors
+           hover:border-ink-soft focus:border-gold/70 focus:outline-none;
+  }
+
+  .label {
+    @apply mb-2 block text-[13px] font-medium text-bone-dim;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-ink-line bg-ink-raised
+           px-3 py-1 text-[12px] text-bone-dim;
+  }
+}
+
+@layer utilities {
+  /* Staggered reveal for lists, set with style={{ ['--i']: n }}. */
+  .stagger {
+    animation-delay: calc(var(--i, 0) * 60ms);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}

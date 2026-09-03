@@ -1,0 +1,193 @@
+'use client'
+
+import Link from 'next/link'
+import { useCallback, useEffect, useState } from 'react'
+
+interface Reason {
+  rule: string
+  label: string
+  passed: boolean
+  detail: string
+}
+
+interface Application {
+  status: 'pending' | 'verifying' | 'needs_review' | 'approved' | 'rejected' | 'withdrawn'
+  fullName: string
+  citySlug: string
+  nicheSlug: string
+  roleSlug: string | null
+  senioritySlug: string | null
+  submittedAt: string
+  decidedAt: string | null
+  decisionNote: string | null
+  reasons: Reason[]
+  whatsapp: { state: string; groupName: string | null } | null
+}
+
+const HEADLINE: Record<Application['status'], { eyebrow: string; title: string }> = {
+  pending: { eyebrow: 'Received', title: 'In the queue.' },
+  verifying: { eyebrow: 'Checking', title: 'Reading your profile.' },
+  needs_review: { eyebrow: 'With a person', title: 'Almost there.' },
+  approved: { eyebrow: 'Verified', title: "You're in." },
+  rejected: { eyebrow: 'Not this time', title: 'Not yet.' },
+  withdrawn: { eyebrow: 'Withdrawn', title: 'This request was withdrawn.' },
+}
+
+const WHATSAPP_COPY: Record<string, string> = {
+  queued: 'You are queued for your circle’s WhatsApp group and will be added shortly.',
+  invited: 'Your invite has gone out — check WhatsApp on the number you gave us.',
+  joined: 'You are in the group.',
+  failed: 'We could not add you automatically. Someone will reach out.',
+}
+
+export function StatusView({ initialToken }: { initialToken: string }) {
+  const [token, setToken] = useState(initialToken)
+  const [application, setApplication] = useState<Application | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const load = useCallback(async (value: string) => {
+    if (!value) return
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/status?token=${encodeURIComponent(value)}`)
+      const data = (await res.json()) as { ok: boolean; application?: Application; error?: string }
+      if (!res.ok || !data.ok || !data.application) {
+        setApplication(null)
+        setError(data.error ?? 'We could not find that application.')
+        return
+      }
+      setApplication(data.application)
+    } catch {
+      setError('We could not reach the server.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (initialToken) void load(initialToken)
+  }, [initialToken, load])
+
+  return (
+    <div>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          void load(token)
+        }}
+        className="flex flex-col gap-3 sm:flex-row"
+      >
+        <label htmlFor="token" className="sr-only">
+          Your status link
+        </label>
+        <input
+          id="token"
+          className="field flex-1"
+          placeholder="Paste your status link or token"
+          value={token}
+          onChange={(e) => {
+            // Accept a whole URL as well as a bare token — people paste links.
+            const raw = e.target.value.trim()
+            const match = raw.match(/[?&]token=([^&\s]+)/)
+            setToken(match?.[1] ? decodeURIComponent(match[1]) : raw)
+          }}
+        />
+        <button type="submit" className="btn-primary" disabled={loading || token.length < 8}>
+          {loading ? 'Looking…' : 'Check'}
+        </button>
+      </form>
+
+      {error ? (
+        <p role="alert" className="mt-6 rounded-lg border border-flag/40 bg-flag/10 px-4 py-3 text-[14px] text-flag">
+          {error}
+        </p>
+      ) : null}
+
+      {application ? (
+        <div className="mt-12 animate-rise">
+          <p className="eyebrow">{HEADLINE[application.status].eyebrow}</p>
+          <h2 className="mt-4 font-display text-4xl leading-tight text-bone sm:text-5xl">
+            {HEADLINE[application.status].title}
+          </h2>
+
+          {application.decisionNote ? (
+            <p className="mt-5 max-w-prose text-[16px] leading-relaxed text-bone-dim">
+              {application.decisionNote}
+            </p>
+          ) : null}
+
+          {application.whatsapp ? (
+            <div className="mt-8 rounded-xl border border-verified/40 bg-verified/[0.07] p-6">
+              <p className="eyebrow !text-verified">Your group</p>
+              <p className="mt-3 font-display text-2xl text-bone">
+                {application.whatsapp.groupName ?? 'Being assigned'}
+              </p>
+              <p className="mt-2 text-[14px] text-bone-dim">
+                {WHATSAPP_COPY[application.whatsapp.state] ?? WHATSAPP_COPY.queued}
+              </p>
+            </div>
+          ) : null}
+
+          {application.reasons.length > 0 ? (
+            <div className="mt-10">
+              <h3 className="eyebrow">What the check found</h3>
+              <ul className="mt-5 space-y-px overflow-hidden rounded-xl border border-ink-line bg-ink-line">
+                {application.reasons.map((reason, i) => (
+                  <li key={`${reason.rule}-${i}`} className="flex gap-4 bg-ink-card px-5 py-4">
+                    <span
+                      aria-hidden="true"
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] ${
+                        reason.passed
+                          ? 'bg-verified/15 text-verified'
+                          : 'bg-flag/15 text-flag'
+                      }`}
+                    >
+                      {reason.passed ? '✓' : '!'}
+                    </span>
+                    <div>
+                      <p className="text-[14px] text-bone">
+                        {reason.label}
+                        <span className="sr-only">: {reason.passed ? 'passed' : 'not passed'}</span>
+                      </p>
+                      <p className="mt-1 text-[13px] leading-relaxed text-bone-dim">{reason.detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
+          <dl className="mt-10 grid gap-4 text-[14px] sm:grid-cols-3">
+            <div>
+              <dt className="text-bone-faint">Requested</dt>
+              <dd className="mt-1 text-bone">
+                {new Date(application.submittedAt).toLocaleDateString(undefined, {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                })}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-bone-faint">Circle</dt>
+              <dd className="mt-1 text-bone">
+                <Link
+                  href={`/circles/${application.citySlug}/${application.nicheSlug}`}
+                  className="hover:text-gold"
+                >
+                  {application.nicheSlug} · {application.citySlug}
+                </Link>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-bone-faint">Name on the request</dt>
+              <dd className="mt-1 text-bone">{application.fullName}</dd>
+            </div>
+          </dl>
+        </div>
+      ) : null}
+    </div>
+  )
+}
