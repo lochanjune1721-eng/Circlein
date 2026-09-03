@@ -258,6 +258,10 @@ Every country has at least one city, checked in CI, so the directory never dead-
   the public site needs — verified by `scripts/verify-schema.sh`.
 - **No member is ever listed publicly.** The directory shows circles and counts. There
   is no page a stranger can scrape for names or numbers.
+- **Signing in routes by who you are.** `lib/auth-destination.ts` resolves the
+  landing page after the OAuth round trip: a verified member reaches their circle, an
+  applicant reaches their status, a newcomer reaches the form. Sign-in is an entry
+  point in its own right at `/signin`, not only a step inside applying.
 - **A member reads their own row, and the database enforces it.** RLS policies key on
   `auth.uid()`, so `/status` needs no token once you are signed in. The opaque token
   remains for applications made before signing in.
@@ -279,7 +283,8 @@ Every country has at least one city, checked in CI, so the directory never dead-
 app/
   page.tsx                       landing
   apply/                         sign in with LinkedIn, then the request flow
-  auth/callback/                 OAuth code exchange
+  signin/                        the way back in for an existing member
+  auth/callback/                 OAuth code exchange, routed by who signed in
   auth/signout/
   events/                        listing, and one page per event with RSVP
   status/                        applicant-facing status, by token

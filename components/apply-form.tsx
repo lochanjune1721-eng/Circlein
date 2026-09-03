@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { Combobox, type Option } from './combobox'
-import { LinkedInButton } from './linkedin-button'
 
 export interface SignedInIdentity {
   fullName: string

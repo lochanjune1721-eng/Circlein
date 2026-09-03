@@ -7,9 +7,14 @@ import { browserClient } from '@/lib/supabase/browser'
  * Starts the LinkedIn redirect. Supabase's provider key is `linkedin_oidc` —
  * the older `linkedin` provider was LinkedIn's deprecated OAuth product and no
  * longer works.
+ *
+ * `next` defaults to "auto", which lets the callback route by who signed in: a
+ * verified member lands on their circle, someone mid-application on its status,
+ * and a newcomer on the form. Pass a path only when the destination is genuinely
+ * fixed — an event page bringing someone back to that event, say.
  */
 export function LinkedInButton({
-  next = '/apply',
+  next = 'auto',
   label = 'Continue with LinkedIn',
   className = 'btn-primary',
 }: {

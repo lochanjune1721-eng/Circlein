@@ -11,7 +11,7 @@ import { LinkedInButton } from './linkedin-button'
 export function SignInPrompt({
   title,
   body,
-  next = '/apply',
+  next = 'auto',
   available,
   className = '',
 }: {

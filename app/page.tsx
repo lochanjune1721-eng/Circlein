@@ -83,7 +83,7 @@ export default async function HomePage() {
                 Finish your request
               </Link>
             ) : signInAvailable ? (
-              <LinkedInButton next="/apply" label="Sign in with LinkedIn" />
+              <LinkedInButton label="Sign in with LinkedIn" />
             ) : (
               <Link href="/apply" className="btn-primary">
                 Request an invite
@@ -332,7 +332,7 @@ export default async function HomePage() {
                 Finish your request
               </Link>
             ) : signInAvailable ? (
-              <LinkedInButton next="/apply" label="Sign in with LinkedIn" />
+              <LinkedInButton label="Sign in with LinkedIn" />
             ) : (
               <Link href="/apply" className="btn-primary">
                 Request an invite

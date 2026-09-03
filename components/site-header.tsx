@@ -53,9 +53,19 @@ export async function SiteHeader() {
               </form>
             </>
           ) : (
-            <Link href="/apply" className="btn-primary !px-5 !py-2 text-[13px]">
-              Request an invite
-            </Link>
+            <>
+              {/* A verified member coming back needs a way in that is not the
+                  application form. */}
+              <Link
+                href="/signin"
+                className="text-[13px] text-bone-dim transition-colors hover:text-bone"
+              >
+                Sign in
+              </Link>
+              <Link href="/apply" className="btn-primary !px-5 !py-2 text-[13px]">
+                Request an invite
+              </Link>
+            </>
           )}
         </div>
       </div>

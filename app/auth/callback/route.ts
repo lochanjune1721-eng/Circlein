@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
-import { sessionClient } from '@/lib/supabase/auth'
+import { destinationForUser } from '@/lib/auth-destination'
+import { identityFromUser, sessionClient } from '@/lib/supabase/auth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -17,8 +18,13 @@ export async function GET(request: Request) {
   const oauthError = url.searchParams.get('error_description') ?? url.searchParams.get('error')
 
   // `next` is attacker-controllable, so only same-origin paths are honoured.
-  const requested = url.searchParams.get('next') ?? '/apply'
-  const next = requested.startsWith('/') && !requested.startsWith('//') ? requested : '/apply'
+  // The sentinel "auto" means "work out where this person belongs", which can
+  // only be answered once the session exists.
+  const requested = url.searchParams.get('next') ?? 'auto'
+  const next =
+    requested !== 'auto' && requested.startsWith('/') && !requested.startsWith('//')
+      ? requested
+      : 'auto'
 
   if (oauthError) {
     return NextResponse.redirect(new URL(`/apply?auth_error=${encodeURIComponent(oauthError)}`, url.origin))
@@ -32,12 +38,16 @@ export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/apply?auth_error=Sign-in%20is%20not%20configured', url.origin))
   }
 
-  const { error } = await supabase.auth.exchangeCodeForSession(code)
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
   if (error) {
     return NextResponse.redirect(
       new URL(`/apply?auth_error=${encodeURIComponent(error.message)}`, url.origin),
     )
   }
 
-  return NextResponse.redirect(new URL(next, url.origin))
+  if (next !== 'auto') return NextResponse.redirect(new URL(next, url.origin))
+
+  const identity = data.user ? identityFromUser(data.user) : null
+  const destination = identity ? await destinationForUser(identity.authUserId) : '/apply'
+  return NextResponse.redirect(new URL(destination, url.origin))
 }
