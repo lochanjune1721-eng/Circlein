@@ -51,7 +51,6 @@ export default async function ApplyPage({
             <LinkedInButton
               supabaseUrl={supabase.url}
               supabaseAnonKey={supabase.anonKey}
-              next="/apply"
               label="Continue with LinkedIn"
             />
           ) : (

@@ -16,14 +16,12 @@ import { browserClient } from '@/lib/supabase/browser'
 export function LinkedInButton({
   supabaseUrl,
   supabaseAnonKey,
-  next = 'auto',
   label = 'Continue with LinkedIn',
   className = 'btn-primary',
 }: {
   /** Passed down from a server component — see lib/supabase/browser.ts. */
   supabaseUrl: string
   supabaseAnonKey: string
-  next?: string
   label?: string
   className?: string
 }) {
@@ -41,13 +39,10 @@ export function LinkedInButton({
     setBusy(true)
     setError(null)
 
-    // "auto" is the default and the callback assumes it, so leave it off the
-    // URL entirely. Supabase matches redirect targets against an allow-list,
-    // and a bare /auth/callback matches a plain entry — a query string may not.
-    const callback =
-      next && next !== 'auto'
-        ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
-        : `${window.location.origin}/auth/callback`
+    // Always the bare callback. It goes to the form afterwards, every time —
+    // no destination to pass, and no query string that Supabase's redirect
+    // allow-list might refuse to match.
+    const callback = `${window.location.origin}/auth/callback`
 
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: 'linkedin_oidc',

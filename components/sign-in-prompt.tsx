@@ -11,13 +11,11 @@ import { LinkedInButton } from './linkedin-button'
 export function SignInPrompt({
   title,
   body,
-  next = 'auto',
   supabase,
   className = '',
 }: {
   title: string
   body: string
-  next?: string
   /** Null when this deployment has no Supabase public pair, so sign-in cannot start. */
   supabase: { url: string; anonKey: string } | null
   className?: string
@@ -33,7 +31,6 @@ export function SignInPrompt({
           <LinkedInButton
             supabaseUrl={supabase.url}
             supabaseAnonKey={supabase.anonKey}
-            next={next}
             label="Sign in with LinkedIn"
             className="btn-primary !px-5 !py-2.5 text-[13px]"
           />

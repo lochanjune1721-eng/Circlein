@@ -3,7 +3,6 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { LinkedInButton } from '@/components/linkedin-button'
 import { POLICY, publicSupabaseConfig } from '@/lib/config'
-import { destinationForUser } from '@/lib/auth-destination'
 import { currentIdentity } from '@/lib/supabase/auth'
 
 export const metadata: Metadata = {
@@ -16,17 +15,16 @@ export const dynamic = 'force-dynamic'
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; auth_error?: string }>
+  searchParams: Promise<{ auth_error?: string }>
 }) {
-  const { next, auth_error: authError } = await searchParams
+  const { auth_error: authError } = await searchParams
   const identity = await currentIdentity()
 
-  // Already signed in? Then this page has nothing to offer — send them on.
-  if (identity) redirect(await destinationForUser(identity.authUserId))
+  // Already signed in? Then this page has nothing to offer — send them to the
+  // form, which is the only thing signing in leads to.
+  if (identity) redirect('/apply')
 
   const supabase = publicSupabaseConfig()
-  // Only same-origin paths are passed through to the OAuth round trip.
-  const target = next && next.startsWith('/') && !next.startsWith('//') ? next : 'auto'
 
   return (
     <div className="shell max-w-xl pb-24 pt-24">
@@ -53,7 +51,6 @@ export default async function SignInPage({
           <LinkedInButton
             supabaseUrl={supabase.url}
             supabaseAnonKey={supabase.anonKey}
-            next={target}
             label="Sign in with LinkedIn"
           />
         ) : (

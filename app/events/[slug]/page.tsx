@@ -183,7 +183,6 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               className="mt-4"
               title="Sign in to take a place."
               body="Places are held for verified members. Signing in with LinkedIn is the first step."
-              next={`/events/${event.slug}`}
               supabase={publicSupabaseConfig()}
             />
           ) : null}

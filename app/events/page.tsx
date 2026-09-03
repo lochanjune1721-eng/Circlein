@@ -99,7 +99,6 @@ export default async function EventsPage({
           className="mt-12"
           title="RSVPs are for verified members."
           body="Sign in with LinkedIn to take a place. If you are not a member yet, requesting an invite takes about two minutes."
-          next="/events"
           supabase={publicSupabaseConfig()}
         />
       ) : null}
