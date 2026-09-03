@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { EventCard } from '@/components/event-card'
 import { POLICY } from '@/lib/config'
 import { circleSize } from '@/lib/circles'
+import { listEvents } from '@/lib/events'
 import { CITY_BY_SLUG, METRO_BY_SLUG, citiesInSameMarket } from '@/lib/taxonomy/cities'
 import { COUNTRY_BY_SLUG } from '@/lib/taxonomy/countries'
 import { NICHE_BY_SLUG, NICHE_GROUP_BY_SLUG } from '@/lib/taxonomy/niches'
@@ -40,7 +42,12 @@ export default async function CirclePage({
   const group = NICHE_GROUP_BY_SLUG.get(niche.group)
   const metro = city.metro ? METRO_BY_SLUG.get(city.metro) : undefined
   const market = citiesInSameMarket(city.slug)
-  const members = await circleSize(city.slug, niche.slug)
+  const [members, events] = await Promise.all([
+    circleSize(city.slug, niche.slug),
+    // City-wide events count for this circle too — that is what leaving the
+    // niche off an event means.
+    listEvents({ citySlug: city.slug, nicheSlug: niche.slug, limit: 3 }),
+  ])
 
   // Roles that commonly sit in this niche — concrete enough that someone can
   // tell at a glance whether this is their room.
@@ -114,6 +121,22 @@ export default async function CirclePage({
               </Link>
             ) : null}
           </div>
+
+          {events.length > 0 ? (
+            <div className="mt-14">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <h2 className="eyebrow">Coming up</h2>
+                <Link href={`/events?city=${city.slug}`} className="text-[13px] text-gold hover:text-gold-bright">
+                  All events in {city.name} →
+                </Link>
+              </div>
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                {events.map((event, i) => (
+                  <EventCard key={event.id} event={event} index={i} />
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           {roles.length > 0 ? (
             <div className="mt-14">

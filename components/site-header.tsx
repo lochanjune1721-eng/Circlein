@@ -4,6 +4,7 @@ import { Wordmark } from './wordmark'
 
 const NAV = [
   { href: '/directory', label: 'Directory' },
+  { href: '/events', label: 'Events' },
   { href: '/how-it-works', label: 'How it works' },
 ]
 

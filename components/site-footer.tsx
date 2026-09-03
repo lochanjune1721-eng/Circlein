@@ -7,6 +7,7 @@ const COLUMNS = [
     title: 'Network',
     links: [
       { href: '/directory', label: 'Browse circles' },
+      { href: '/events', label: 'Events' },
       { href: '/directory/niches', label: 'All niches' },
       { href: '/apply', label: 'Request an invite' },
       { href: '/status', label: 'Check your status' },

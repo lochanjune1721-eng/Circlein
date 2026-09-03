@@ -88,6 +88,13 @@ insert into circles(city,niche) values ('new-delhi','ai');
 insert into circle_members(circle_id,member_id) select c.id,m.id from circles c, members m;
 insert into whatsapp_groups(circle_id,name,invite_url) select id,'AI · New Delhi','https://chat.example/secret' from circles;
 insert into whatsapp_queue(member_id,group_id) select m.id,g.id from members m, whatsapp_groups g;
+
+insert into events(slug,title,summary,city,niche,starts_at,status,capacity)
+values ('ai-delhi-launch','AI in Delhi, first night','A first room.','new-delhi','ai', now() + interval '14 days','published',2),
+       ('draft-night','Unpublished','Not live yet.','new-delhi','ai', now() + interval '30 days','draft',null);
+
+insert into event_rsvps(event_id,member_id)
+select e.id, m.id from events e, members m where e.slug='ai-delhi-launch' and m.full_name='Alice';
 SQL
 
 count=$(q "-tAc 'select member_count from circles'" | tr -d '[:space:]')
@@ -149,6 +156,30 @@ if as_alice "select invite_url from whatsapp_groups" | grep -qv "permissiondenie
   esac
 fi
 echo "  ok  members cannot read WhatsApp invite links"
+
+rsvps=$(q "-tAc \"select rsvp_count from events where slug='ai-delhi-launch'\"" | tr -d '[:space:]')
+[ "$rsvps" = "1" ] || { echo "  FAIL  event rsvp_count is '$rsvps', expected 1"; exit 1; }
+
+q "-q -c \"delete from event_rsvps\"" >/dev/null
+rsvps=$(q "-tAc \"select rsvp_count from events where slug='ai-delhi-launch'\"" | tr -d '[:space:]')
+[ "$rsvps" = "0" ] || { echo "  FAIL  event rsvp_count is '$rsvps' after cancelling, expected 0"; exit 1; }
+q "-q -c \"insert into event_rsvps(event_id,member_id) select e.id,m.id from events e, members m where e.slug='ai-delhi-launch' and m.full_name='Alice'\"" >/dev/null
+echo "  ok  event attendance counted by trigger"
+
+# A draft event must not be visible to anyone browsing.
+seen=$(q "-tAc \"set role anon; select count(*) from events\"" | tail -1 | tr -d '[:space:]')
+[ "$seen" = "1" ] || { echo "  FAIL  anon sees $seen events, expected only the published one"; exit 1; }
+seen=$(q "-tAc \"set role anon; select count(*) from event_directory\"" | tail -1 | tr -d '[:space:]')
+[ "$seen" = "1" ] || { echo "  FAIL  anon sees $seen rows in event_directory, expected 1"; exit 1; }
+echo "  ok  published events are public, drafts are not"
+
+# There is no guest list. A member sees their own RSVP and nothing else.
+if q "-tAc \"set role anon; select count(*) from event_rsvps\"" >/dev/null 2>&1; then
+  echo "  FAIL  anon can read the guest list"; exit 1
+fi
+seen=$(as_alice "select count(*) from event_rsvps")
+[ "$seen" = "1" ] || { echo "  FAIL  a member sees $seen RSVPs, expected only their own"; exit 1; }
+echo "  ok  RSVPs are private to the member who made them"
 
 echo
 echo "Schema OK."

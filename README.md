@@ -17,7 +17,8 @@ with a door on it.
 | **Identity** | LinkedIn sign-in (OpenID Connect) through Supabase Auth |
 | **Verification** | Deterministic date rules, then a Claude judge that can only ever be *more* cautious |
 | **Taxonomy** | 138 niches · 65 countries · 234 cities · 284 roles · 23 seniority levels |
-| **Public surface** | Circles and counts. Never a member's name, email or number |
+| **Events** | Evenings organised by CircleIn, RSVP gated on verified membership |
+| **Public surface** | Circles, counts and published events. Never a member's name, email or number |
 
 ```
 Country → City → Niche          the circle
@@ -45,9 +46,15 @@ than failing. Fill in `.env.local` to make it real.
 # 1. Apply the schema, in order (Supabase SQL editor, or psql)
 psql "$DATABASE_URL" -f supabase/migrations/0001_init.sql
 psql "$DATABASE_URL" -f supabase/migrations/0002_linkedin_identity.sql
+psql "$DATABASE_URL" -f supabase/migrations/0003_events.sql
 
 # 2. Push the taxonomy into it
 NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npm run db:seed
+
+# 3. Optional: sample events, to see that feature working
+npm run db:seed:events              # inserted as drafts, invisible to visitors
+npm run db:seed:events -- --publish # makes them public — they are invented, so
+                                    # delete them before real members arrive
 ```
 
 ### Turning on LinkedIn sign-in
@@ -141,6 +148,28 @@ always be explained or appealed.
 
 ---
 
+## Events
+
+A circle is a group chat; an event is the room it eventually meets in. Events are
+scoped exactly like members — one city, and either one niche or open to the whole
+city. Leaving the niche off is what makes an event cross-disciplinary, and those
+events appear in every circle's list for that city.
+
+- **Published events are public.** They are how someone who is not a member finds out
+  this exists, so anonymous visitors can read the listing. Drafts are not visible to
+  anyone, which is why the seed script inserts drafts by default.
+- **RSVPs are for verified members**, not merely for people who signed in. Signing in
+  with LinkedIn is not membership; the RSVP checks for a `members` row.
+- **There is no guest list.** RLS lets a member read their own RSVP and nothing else,
+  so one member cannot enumerate the others.
+- **Going versus waitlist is decided on the server.** A client that decides whether a
+  room is full is a client that can decide it is not. Capacity is enforced in
+  `lib/events.ts`, and the count is maintained by a trigger so it cannot drift from
+  the rows.
+
+Times render in the event's own timezone. Someone in London reading about a Bengaluru
+evening wants to know when to turn up in Bengaluru.
+
 ## The taxonomy
 
 `lib/taxonomy/` — the source of truth; the database holds a seeded copy so joins and
@@ -208,22 +237,25 @@ app/
   apply/                         sign in with LinkedIn, then the request flow
   auth/callback/                 OAuth code exchange
   auth/signout/
+  events/                        listing, and one page per event with RSVP
   status/                        applicant-facing status, by token
   how-it-works/                  what the door checks, in full
   directory/                     country → city → niche
   circles/[city]/[niche]/        a circle
   admin/                         review queue
-  api/                           apply · status · search · admin/review
+  api/                           apply · status · search · events/rsvp · admin/review
 middleware.ts                    refreshes the Supabase session on every request
 lib/
   supabase/auth.ts               session client and the LinkedIn identity
+  events.ts                      listing, capacity, RSVP and waitlist
   taxonomy/                      niches, countries, cities, roles, seniority,
                                  normalisation, search
   verification/                  provider · rules · judge · orchestration
   applications.ts                submit → verify → admit → queue for WhatsApp
   supabase/                      clients and row types
 supabase/migrations/             schema, RLS, grants, directory view
-scripts/                         taxonomy check · rules smoke test · schema check · seed
+scripts/                         taxonomy check · rules smoke test · schema check ·
+                                 taxonomy seed · sample events seed
 ```
 
 ---
@@ -236,7 +268,10 @@ Honest about what is not built:
   and `/status` reports it, but nothing calls the WhatsApp Business API yet. The
   hand-off point is `admitMember()` in `lib/applications.ts`.
 - **No transactional email.** An applicant learns their outcome from the status link;
-  nothing is sent to them.
+  nothing is sent to them. Event RSVPs are not confirmed by email either.
+- **Events are created in SQL, not in a UI.** There is no admin screen for writing an
+  event — insert a row, or adapt `scripts/seed-events.ts`. The read side, RSVPs and
+  capacity are all built.
 - **Rate limiting counts rows** rather than using a sliding window in Redis. Fine at
   this scale, not at ten thousand applications an hour.
 - **The mock provider is the default.** It produces a spread of tenures and account

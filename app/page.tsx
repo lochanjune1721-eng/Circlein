@@ -1,5 +1,9 @@
 import Link from 'next/link'
-import { POLICY } from '@/lib/config'
+import { EventCard } from '@/components/event-card'
+import { LinkedInButton } from '@/components/linkedin-button'
+import { POLICY, isSupabaseConfigured } from '@/lib/config'
+import { listEvents } from '@/lib/events'
+import { currentIdentity } from '@/lib/supabase/auth'
 import { CITIES, CITY_BY_SLUG } from '@/lib/taxonomy/cities'
 import { COUNTRY_BY_SLUG } from '@/lib/taxonomy/countries'
 import { NICHES, NICHE_GROUPS } from '@/lib/taxonomy/niches'
@@ -36,7 +40,9 @@ function StatBlock({ value, label }: { value: string; label: string }) {
   )
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [events, identity] = await Promise.all([listEvents({ limit: 3 }), currentIdentity()])
+  const signInAvailable = isSupabaseConfigured()
   const nicheCount = NICHES.length
   const cityCount = CITIES.length
   const roleCount = ROLES.length
@@ -72,16 +78,26 @@ export default function HomePage() {
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-3 animate-rise stagger" style={{ ['--i' as string]: 2 }}>
-            <Link href="/apply" className="btn-primary">
-              Request an invite
-            </Link>
+            {identity ? (
+              <Link href="/apply" className="btn-primary">
+                Finish your request
+              </Link>
+            ) : signInAvailable ? (
+              <LinkedInButton next="/apply" label="Sign in with LinkedIn" />
+            ) : (
+              <Link href="/apply" className="btn-primary">
+                Request an invite
+              </Link>
+            )}
             <Link href="/directory" className="btn-ghost">
               See the circles
             </Link>
           </div>
 
           <p className="mt-5 text-[13px] text-bone-faint animate-fade stagger" style={{ ['--i' as string]: 3 }}>
-            Every request is checked against your LinkedIn before anyone gets in.
+            {identity
+              ? `Signed in as ${identity.fullName}.`
+              : 'Signing in is how we know you are you. It takes one tap and no password.'}
           </p>
             </div>
 
@@ -253,6 +269,53 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* ── Events ───────────────────────────────────────────────────────── */}
+      <section className="rule bg-ink-raised/40">
+        <div className="shell py-20">
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <p className="eyebrow">Events by CircleIn</p>
+              <h2 className="mt-4 max-w-2xl font-display text-4xl leading-tight text-bone sm:text-5xl">
+                Eventually, everyone
+                <br />
+                is in the same room.
+              </h2>
+            </div>
+            <Link href="/events" className="text-[14px] text-gold hover:text-gold-bright">
+              See what is on →
+            </Link>
+          </div>
+
+          <p className="mt-6 max-w-prose text-[16px] leading-relaxed text-bone-dim">
+            A group chat is a start. CircleIn organises small evenings for its circles — twelve to
+            forty people who already do the same work in the same city, so nobody spends the first
+            hour explaining what they do.
+          </p>
+
+          {events.length > 0 ? (
+            <div className="mt-12 grid gap-4 md:grid-cols-3">
+              {events.map((event, i) => (
+                <EventCard key={event.id} event={event} index={i} />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-12 grid gap-4 md:grid-cols-3">
+              {[
+                { n: '01', title: 'Small on purpose', body: 'Capped so everyone can actually talk. When one fills, another opens rather than the room growing until nobody speaks.' },
+                { n: '02', title: 'One circle at a time', body: 'A room of AI engineers in Bengaluru, or product designers in Berlin. Sometimes a whole city, when the point is to cross over.' },
+                { n: '03', title: 'Members only', body: 'Everyone in the room has been through the same door, so an introduction is worth something.' },
+              ].map((item, i) => (
+                <article key={item.n} className="card animate-rise stagger p-7" style={{ ['--i' as string]: i }}>
+                  <div className="font-mono text-[12px] text-gold">{item.n}</div>
+                  <h3 className="mt-4 font-display text-2xl text-bone">{item.title}</h3>
+                  <p className="mt-3 text-[14px] leading-relaxed text-bone-dim">{item.body}</p>
+                </article>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* ── Closing ──────────────────────────────────────────────────────── */}
       <section className="rule">
         <div className="shell py-24 text-center">
@@ -263,10 +326,18 @@ export default function HomePage() {
             Requests are checked in the order they arrive. You will hear back with a decision and,
             if you are in, a place in your circle&apos;s WhatsApp group.
           </p>
-          <div className="mt-9">
-            <Link href="/apply" className="btn-primary">
-              Request an invite
-            </Link>
+          <div className="mt-9 flex flex-wrap justify-center gap-3">
+            {identity ? (
+              <Link href="/apply" className="btn-primary">
+                Finish your request
+              </Link>
+            ) : signInAvailable ? (
+              <LinkedInButton next="/apply" label="Sign in with LinkedIn" />
+            ) : (
+              <Link href="/apply" className="btn-primary">
+                Request an invite
+              </Link>
+            )}
           </div>
         </div>
       </section>

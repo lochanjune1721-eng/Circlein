@@ -11,7 +11,8 @@
     "taxonomy:check": "tsx scripts/check-taxonomy.ts",
     "db:seed": "tsx scripts/seed-taxonomy.ts",
     "verify:smoke": "tsx scripts/smoke-verification.ts",
-    "check": "npm run taxonomy:check && npm run verify:smoke && npm run typecheck"
+    "check": "npm run taxonomy:check && npm run verify:smoke && npm run typecheck",
+    "db:seed:events": "tsx scripts/seed-events.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.123.0",

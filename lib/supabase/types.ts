@@ -139,3 +139,63 @@ export interface WhatsAppQueueRow {
   joined_at: string | null
   note: string | null
 }
+
+export type EventStatus = 'draft' | 'published' | 'cancelled'
+
+export type RsvpState = 'going' | 'waitlist' | 'cancelled'
+
+export interface EventRow {
+  id: string
+  slug: string
+  title: string
+  summary: string
+  description: string | null
+  city: string
+  /** Null means the event is open to every niche in that city. */
+  niche: string | null
+  starts_at: string
+  ends_at: string | null
+  timezone: string
+  is_online: boolean
+  venue_name: string | null
+  venue_area: string | null
+  capacity: number | null
+  rsvp_count: number
+  status: EventStatus
+  host_name: string
+  cover_emoji: string
+  created_at: string
+}
+
+/** An event joined to its taxonomy labels, from the `event_directory` view. */
+export interface EventDirectoryRow {
+  id: string
+  slug: string
+  title: string
+  summary: string
+  starts_at: string
+  ends_at: string | null
+  timezone: string
+  is_online: boolean
+  venue_name: string | null
+  venue_area: string | null
+  capacity: number | null
+  rsvp_count: number
+  host_name: string
+  cover_emoji: string
+  status: EventStatus
+  city: string
+  city_name: string
+  country: string
+  country_name: string
+  country_emoji: string
+  niche: string | null
+  niche_name: string | null
+}
+
+export interface EventRsvpRow {
+  event_id: string
+  member_id: string
+  state: RsvpState
+  created_at: string
+}
