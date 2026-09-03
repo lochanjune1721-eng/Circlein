@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { LinkedInButton } from '@/components/linkedin-button'
-import { POLICY, isSupabaseConfigured } from '@/lib/config'
+import { POLICY, publicSupabaseConfig } from '@/lib/config'
 import { destinationForUser } from '@/lib/auth-destination'
 import { currentIdentity } from '@/lib/supabase/auth'
 
@@ -24,7 +24,7 @@ export default async function SignInPage({
   // Already signed in? Then this page has nothing to offer — send them on.
   if (identity) redirect(await destinationForUser(identity.authUserId))
 
-  const available = isSupabaseConfigured()
+  const supabase = publicSupabaseConfig()
   // Only same-origin paths are passed through to the OAuth round trip.
   const target = next && next.startsWith('/') && !next.startsWith('//') ? next : 'auto'
 
@@ -49,20 +49,26 @@ export default async function SignInPage({
       ) : null}
 
       <div className="mt-10">
-        {available ? (
-          <LinkedInButton next={target} label="Sign in with LinkedIn" />
+        {supabase ? (
+          <LinkedInButton
+            supabaseUrl={supabase.url}
+            supabaseAnonKey={supabase.anonKey}
+            next={target}
+            label="Sign in with LinkedIn"
+          />
         ) : (
           <div className="rounded-lg border border-flag/40 bg-flag/[0.07] px-4 py-4 text-[14px] text-bone-dim">
-            <p className="text-bone">This build has no Supabase keys, so sign-in cannot start.</p>
+            <p className="text-bone">
+              This deployment has no Supabase keys, so sign-in cannot start.
+            </p>
             <p className="mt-2 leading-relaxed">
-              It needs <span className="font-mono text-[13px]">NEXT_PUBLIC_SUPABASE_URL</span> and{' '}
-              <span className="font-mono text-[13px]">NEXT_PUBLIC_SUPABASE_ANON_KEY</span>. Both are
-              baked in when the app is built, so setting them afterwards does nothing until you
-              deploy again.
+              Set <span className="font-mono text-[13px]">SUPABASE_URL</span> and{' '}
+              <span className="font-mono text-[13px]">SUPABASE_ANON_KEY</span>. They are read on
+              each request, so no rebuild is needed — just reload once they are set.
             </p>
             <p className="mt-2 leading-relaxed text-bone-faint">
-              Nothing to do with your LinkedIn provider in Supabase — that is checked later, once
-              sign-in can actually start. See <span className="font-mono text-[13px]">/api/health</span>.
+              Nothing to do with your LinkedIn provider in Supabase — that is only reached once
+              sign-in can start. See <span className="font-mono text-[13px]">/api/health</span>.
             </p>
           </div>
         )}

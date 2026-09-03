@@ -12,14 +12,14 @@ export function SignInPrompt({
   title,
   body,
   next = 'auto',
-  available,
+  supabase,
   className = '',
 }: {
   title: string
   body: string
   next?: string
-  /** False when this build has no Supabase public keys, so sign-in cannot start. */
-  available: boolean
+  /** Null when this deployment has no Supabase public pair, so sign-in cannot start. */
+  supabase: { url: string; anonKey: string } | null
   className?: string
 }) {
   return (
@@ -29,8 +29,14 @@ export function SignInPrompt({
       <p className="mt-2 text-[14px] leading-relaxed text-bone-dim">{body}</p>
 
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        {available ? (
-          <LinkedInButton next={next} label="Sign in with LinkedIn" className="btn-primary !px-5 !py-2.5 text-[13px]" />
+        {supabase ? (
+          <LinkedInButton
+            supabaseUrl={supabase.url}
+            supabaseAnonKey={supabase.anonKey}
+            next={next}
+            label="Sign in with LinkedIn"
+            className="btn-primary !px-5 !py-2.5 text-[13px]"
+          />
         ) : null}
         <Link href="/apply" className="btn-ghost !px-5 !py-2.5 text-[13px]">
           Request an invite

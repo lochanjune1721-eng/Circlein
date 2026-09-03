@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { EventCard } from '@/components/event-card'
 import { SignInPrompt } from '@/components/sign-in-prompt'
-import { isSupabaseConfigured } from '@/lib/config'
+import { publicSupabaseConfig } from '@/lib/config'
 import { listEvents } from '@/lib/events'
 import { currentIdentity } from '@/lib/supabase/auth'
 import { CITY_BY_SLUG } from '@/lib/taxonomy/cities'
@@ -100,7 +100,7 @@ export default async function EventsPage({
           title="RSVPs are for verified members."
           body="Sign in with LinkedIn to take a place. If you are not a member yet, requesting an invite takes about two minutes."
           next="/events"
-          available={isSupabaseConfigured()}
+          supabase={publicSupabaseConfig()}
         />
       ) : null}
     </div>

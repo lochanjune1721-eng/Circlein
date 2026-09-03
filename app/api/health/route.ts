@@ -19,13 +19,11 @@ export async function GET() {
   const publicKeys = isSupabaseConfigured()
 
   return NextResponse.json({
-    // The two NEXT_PUBLIC_* values. These are inlined at build time, so on a
-    // hosted deployment they must have been present when the build ran —
-    // adding them afterwards needs a rebuild.
+    // Supabase's public pair. Read on each request and handed to the browser
+    // as props, so setting them takes effect on the next request — no rebuild.
     supabasePublicKeys: publicKeys,
     signInAvailable: publicKeys,
 
-    // Server-side. Read at runtime, so these take effect without a rebuild.
     supabaseServiceRole: isServiceRoleConfigured(),
     anthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
     adminToken: Boolean(ADMIN_TOKEN),
@@ -34,6 +32,6 @@ export async function GET() {
 
     hint: publicKeys
       ? 'Sign-in is available. If LinkedIn still fails, the remaining setup is in Supabase and the LinkedIn app.'
-      : 'Sign-in is unavailable because this build has no NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY. Set both, then rebuild — they are baked in at build time.',
+      : 'Sign-in is unavailable because this deployment has no SUPABASE_URL / SUPABASE_ANON_KEY. Set both and reload — no rebuild needed.',
   })
 }

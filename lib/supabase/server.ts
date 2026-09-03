@@ -46,7 +46,7 @@ export function requireServiceClient(): SupabaseClient {
   const client = serviceClient()
   if (!client) {
     throw new Error(
-      'Supabase service role is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
+      'Supabase service role is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.',
     )
   }
   return client

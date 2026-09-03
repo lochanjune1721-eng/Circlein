@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { RsvpButton } from '@/components/rsvp-button'
 import { SignInPrompt } from '@/components/sign-in-prompt'
-import { isSupabaseConfigured } from '@/lib/config'
+import { publicSupabaseConfig } from '@/lib/config'
 import {
   eventBySlug,
   eventDescription,
@@ -184,7 +184,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
               title="Sign in to take a place."
               body="Places are held for verified members. Signing in with LinkedIn is the first step."
               next={`/events/${event.slug}`}
-              available={isSupabaseConfigured()}
+              supabase={publicSupabaseConfig()}
             />
           ) : null}
         </aside>

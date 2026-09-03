@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { EventCard } from '@/components/event-card'
 import { LinkedInButton } from '@/components/linkedin-button'
-import { POLICY, isSupabaseConfigured } from '@/lib/config'
+import { POLICY, publicSupabaseConfig } from '@/lib/config'
 import { listEvents } from '@/lib/events'
 import { currentIdentity } from '@/lib/supabase/auth'
 import { CITIES, CITY_BY_SLUG } from '@/lib/taxonomy/cities'
@@ -15,6 +15,18 @@ import { VerificationSteps } from '@/components/verification-steps'
  * The landing page has one job: make it obvious in five seconds what this is,
  * why the door is locked, and that the room behind it is worth the wait.
  */
+
+/**
+ * Rendered per request, not prerendered.
+ *
+ * This page reads the session and the Supabase config to decide whether to
+ * offer sign-in. Without this, Next prerenders it — and it *would* prerender,
+ * because with no config `sessionClient()` returns before it ever touches
+ * cookies, so nothing marks the page dynamic. The result is a build with the
+ * "sign-in unavailable" branch frozen into the HTML, which then ignores the
+ * environment variables forever.
+ */
+export const dynamic = 'force-dynamic'
 
 const SAMPLE_CIRCLES: { city: string; niche: string }[] = [
   { city: 'bengaluru', niche: 'ai' },
@@ -42,7 +54,7 @@ function StatBlock({ value, label }: { value: string; label: string }) {
 
 export default async function HomePage() {
   const [events, identity] = await Promise.all([listEvents({ limit: 3 }), currentIdentity()])
-  const signInAvailable = isSupabaseConfigured()
+  const supabase = publicSupabaseConfig()
   const nicheCount = NICHES.length
   const cityCount = CITIES.length
   const roleCount = ROLES.length
@@ -82,8 +94,12 @@ export default async function HomePage() {
               <Link href="/apply" className="btn-primary">
                 Finish your request
               </Link>
-            ) : signInAvailable ? (
-              <LinkedInButton label="Sign in with LinkedIn" />
+            ) : supabase ? (
+              <LinkedInButton
+                supabaseUrl={supabase.url}
+                supabaseAnonKey={supabase.anonKey}
+                label="Sign in with LinkedIn"
+              />
             ) : (
               <Link href="/apply" className="btn-primary">
                 Request an invite
@@ -331,8 +347,12 @@ export default async function HomePage() {
               <Link href="/apply" className="btn-primary">
                 Finish your request
               </Link>
-            ) : signInAvailable ? (
-              <LinkedInButton label="Sign in with LinkedIn" />
+            ) : supabase ? (
+              <LinkedInButton
+                supabaseUrl={supabase.url}
+                supabaseAnonKey={supabase.anonKey}
+                label="Sign in with LinkedIn"
+              />
             ) : (
               <Link href="/apply" className="btn-primary">
                 Request an invite

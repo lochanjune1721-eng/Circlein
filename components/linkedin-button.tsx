@@ -14,10 +14,15 @@ import { browserClient } from '@/lib/supabase/browser'
  * fixed — an event page bringing someone back to that event, say.
  */
 export function LinkedInButton({
+  supabaseUrl,
+  supabaseAnonKey,
   next = 'auto',
   label = 'Continue with LinkedIn',
   className = 'btn-primary',
 }: {
+  /** Passed down from a server component — see lib/supabase/browser.ts. */
+  supabaseUrl: string
+  supabaseAnonKey: string
   next?: string
   label?: string
   className?: string
@@ -26,10 +31,10 @@ export function LinkedInButton({
   const [error, setError] = useState<string | null>(null)
 
   async function signIn() {
-    const supabase = browserClient()
+    const supabase = browserClient(supabaseUrl, supabaseAnonKey)
     if (!supabase) {
       setError(
-        'This build has no Supabase keys, so sign-in cannot start. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, then deploy again.',
+        'Sign-in cannot start: this deployment has no SUPABASE_URL / SUPABASE_ANON_KEY.',
       )
       return
     }

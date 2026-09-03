@@ -28,9 +28,9 @@
   //   CIRCLEIN_ADMIN_TOKEN        the /admin review queue
   //   LINKEDIN_PROVIDER_KEY       the tenure lookup, if you have one
   //
-  // NEXT_PUBLIC_* variables are inlined into the client bundle at build time,
-  // so they must be present when `opennextjs-cloudflare build` runs, not just
-  // at runtime. In Workers Builds, set them as build environment variables.
+  // SUPABASE_URL and SUPABASE_ANON_KEY are read at runtime and handed to the
+  // browser by a server component, so they can be plain variables or secrets
+  // here — they do not need to be present at build time.
   "vars": {
     "CIRCLEIN_MIN_TENURE_MONTHS": "3",
     "CIRCLEIN_MIN_ACCOUNT_AGE_MONTHS": "12",

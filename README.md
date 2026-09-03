@@ -83,17 +83,16 @@ environment variables.
 
 | Variable | Value | Needed |
 |---|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | `https://<project>.supabase.co` | yes — no sign-in without it |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the anon key | yes |
+| `SUPABASE_URL` | `https://<project>.supabase.co` | yes — no sign-in without it |
+| `SUPABASE_ANON_KEY` | the anon key | yes |
 | `SUPABASE_SERVICE_ROLE_KEY` | the service_role key | yes — nothing is written without it |
 | `CIRCLEIN_ADMIN_TOKEN` | `openssl rand -base64 32` | yes, for `/admin` |
 | `ANTHROPIC_API_KEY` | your key | optional — without it everything goes to human review |
 | `LINKEDIN_PROVIDER` | `manual` | **set this before real people apply** |
 
-Unlike Cloudflare there is no build-time/runtime split to get wrong: Vercel builds with
-these present, so `NEXT_PUBLIC_*` are inlined automatically. The policy thresholds
-(`CIRCLEIN_MIN_TENURE_MONTHS` and friends) have defaults in `lib/config.ts` and only
-need setting to change them.
+Every one of these is read on each request, so changing one takes effect on reload
+rather than needing a rebuild. The policy thresholds (`CIRCLEIN_MIN_TENURE_MONTHS` and
+friends) have defaults in `lib/config.ts` and only need setting to change them.
 
 `LINKEDIN_PROVIDER` is the one that matters: it defaults to `mock`, which invents
 plausible employment dates so the flow is demoable. Set it to `manual` in production —
@@ -161,11 +160,13 @@ is not. The file says exactly how.
   "hint": "Sign-in is unavailable because this build has no NEXT_PUBLIC_..." }
 ```
 
-`signInAvailable: false` means this build has no `NEXT_PUBLIC_SUPABASE_URL` /
-`NEXT_PUBLIC_SUPABASE_ANON_KEY`. That is about the app's own environment and says
-nothing about the LinkedIn provider in Supabase — sign-in never gets far enough to
-ask. Because those two are inlined at build time, setting them on a host after a
-deploy changes nothing until the app is built again.
+`signInAvailable: false` means this deployment has no `SUPABASE_URL` /
+`SUPABASE_ANON_KEY`. That is about the app's own environment and says nothing about
+the LinkedIn provider in Supabase — sign-in never gets far enough to ask.
+
+The browser never reads those from `process.env`; a server component passes them down
+as props. So the plain names work, no `NEXT_PUBLIC_` prefix is needed, and setting
+them takes effect on the next request rather than the next build.
 
 ### Checks
 

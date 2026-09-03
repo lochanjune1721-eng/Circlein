@@ -43,8 +43,30 @@ export const POLICY = {
   whatsappGroupCapacity: intFromEnv('CIRCLEIN_WHATSAPP_CAPACITY', 200),
 } as const
 
-export const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-export const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+/**
+ * Supabase's public pair.
+ *
+ * Plain names are the documented ones. NEXT_PUBLIC_* still work, because
+ * that prefix is how Next.js inlines a value into the browser bundle and some
+ * hosts are already set up that way — but nothing here relies on it. The
+ * browser never reads these from `process.env`; a server component passes them
+ * down as props, which is why the plain names work at all and why changing
+ * them takes effect on the next request rather than the next build.
+ */
+export const SUPABASE_URL =
+  process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+export const SUPABASE_ANON_KEY =
+  process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
+
+/**
+ * The public pair, or null when this deployment has neither. Safe to send to
+ * the browser: the anon key is public by design and bound by row level
+ * security.
+ */
+export function publicSupabaseConfig(): { url: string; anonKey: string } | null {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null
+  return { url: SUPABASE_URL, anonKey: SUPABASE_ANON_KEY }
+}
 export const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? ''
 
 /**
