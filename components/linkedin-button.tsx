@@ -34,10 +34,18 @@ export function LinkedInButton({
     setBusy(true)
     setError(null)
 
+    // "auto" is the default and the callback assumes it, so leave it off the
+    // URL entirely. Supabase matches redirect targets against an allow-list,
+    // and a bare /auth/callback matches a plain entry — a query string may not.
+    const callback =
+      next && next !== 'auto'
+        ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
+        : `${window.location.origin}/auth/callback`
+
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: 'linkedin_oidc',
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        redirectTo: callback,
         // The three scopes LinkedIn's OpenID Connect product offers. There is
         // no scope that returns work history — see the README.
         scopes: 'openid profile email',

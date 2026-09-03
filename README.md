@@ -73,6 +73,39 @@ That is the whole setup. The app requests `openid profile email` and uses Supaba
 `linkedin_oidc` provider — note the suffix: plain `linkedin` was LinkedIn's older
 OAuth product and no longer works.
 
+### Deploying to Vercel
+
+Next.js runs on Vercel with no adapter and no build configuration — import the repo,
+pick the `main` branch, and the framework is detected. The only real work is the
+environment variables.
+
+**Project Settings → Environment Variables**, applied to every environment:
+
+| Variable | Value | Needed |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://<project>.supabase.co` | yes — no sign-in without it |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | the anon key | yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | the service_role key | yes — nothing is written without it |
+| `CIRCLEIN_ADMIN_TOKEN` | `openssl rand -base64 32` | yes, for `/admin` |
+| `ANTHROPIC_API_KEY` | your key | optional — without it everything goes to human review |
+| `LINKEDIN_PROVIDER` | `manual` | **set this before real people apply** |
+
+Unlike Cloudflare there is no build-time/runtime split to get wrong: Vercel builds with
+these present, so `NEXT_PUBLIC_*` are inlined automatically. The policy thresholds
+(`CIRCLEIN_MIN_TENURE_MONTHS` and friends) have defaults in `lib/config.ts` and only
+need setting to change them.
+
+`LINKEDIN_PROVIDER` is the one that matters: it defaults to `mock`, which invents
+plausible employment dates so the flow is demoable. Set it to `manual` in production —
+that uses the applicant's declared dates and sends every application to a human.
+
+**After the first deploy**, take the Vercel URL to Supabase → Authentication → URL
+Configuration and set it as the Site URL, and add `<url>/auth/callback` to Redirect
+URLs. Sign-in cannot complete until that entry exists.
+
+The Cloudflare files (`wrangler.jsonc`, `open-next.config.ts`) stay in the repo and are
+simply unused on Vercel.
+
 ### Deploying to Cloudflare
 
 The app runs on Cloudflare Workers through the OpenNext adapter. Verified working:
